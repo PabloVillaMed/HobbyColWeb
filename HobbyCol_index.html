@@ -1,0 +1,1583 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HobbyCol | Tecnología y Estilo — Medellín</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0D1117;
+      --bg-surface: #161B22;
+      --bg-card: #1C2330;
+      --text-primary: #F0F6FC;
+      --text-secondary: #8B949E;
+      --text-muted: #484F58;
+      --amber: #1725e6;
+      --amber-dim: #180a9a;
+      --amber-glow: rgba(230, 168, 23, 0.12);
+      --navy: #1A3A6E;
+      --navy-light: #2155A3;
+      --whatsapp: #25D366;
+      --border: rgba(240, 246, 252, 0.08);
+      --border-hover: rgba(230, 168, 23, 0.4);
+      --radius: 10px;
+      --radius-lg: 16px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text-primary);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ── NAVBAR ── */
+    .navbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(13, 17, 23, 0.88);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 5%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+    }
+
+    .logo {
+      font-size: 1.25rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--text-primary);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .logo-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--amber);
+      border-radius: 50%;
+      animation: pulse 2.4s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.85); }
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover { color: var(--text-primary); }
+
+    .nav-cta {
+      background: var(--amber) !important;
+      color: #0D1117 !important;
+      padding: 8px 18px;
+      border-radius: 6px;
+      font-weight: 700 !important;
+      transition: opacity 0.2s !important;
+    }
+
+    .nav-cta:hover { opacity: 0.88 !important; }
+
+    .hamburger {
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+      cursor: pointer;
+      padding: 4px;
+      background: none;
+      border: none;
+    }
+
+    .hamburger span {
+      display: block;
+      width: 22px;
+      height: 2px;
+      background: var(--text-primary);
+      border-radius: 2px;
+      transition: all 0.3s;
+    }
+
+    /* ── HERO ── */
+    .hero {
+      padding: 100px 5% 80px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      align-items: center;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 20px;
+    }
+
+    .hero-eyebrow::before {
+      content: '';
+      display: block;
+      width: 24px;
+      height: 2px;
+      background: var(--amber);
+      border-radius: 2px;
+    }
+
+    .hero h1 {
+      font-size: clamp(2.2rem, 4.5vw, 3.6rem);
+      font-weight: 800;
+      line-height: 1.08;
+      letter-spacing: -0.04em;
+      margin-bottom: 20px;
+      color: var(--text-primary);
+    }
+
+    .hero h1 em {
+      font-style: normal;
+      color: var(--amber);
+    }
+
+    .hero-desc {
+      font-size: 1rem;
+      color: var(--text-secondary);
+      line-height: 1.75;
+      margin-bottom: 36px;
+      max-width: 420px;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      background: var(--amber);
+      color: #0D1117;
+      padding: 13px 28px;
+      border-radius: var(--radius);
+      font-weight: 700;
+      font-size: 0.9rem;
+      text-decoration: none;
+      transition: opacity 0.2s, transform 0.15s;
+      display: inline-block;
+    }
+
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--text-primary);
+      padding: 13px 28px;
+      border-radius: var(--radius);
+      font-weight: 500;
+      font-size: 0.9rem;
+      text-decoration: none;
+      border: 1px solid var(--border);
+      transition: border-color 0.2s, background 0.2s;
+      display: inline-block;
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--border-hover);
+      background: var(--amber-glow);
+    }
+
+    .hero-badges {
+      display: flex;
+      gap: 24px;
+      margin-top: 48px;
+    }
+
+    .hero-badge {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .hero-badge-num {
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      color: var(--text-primary);
+      line-height: 1;
+    }
+
+    .hero-badge-label {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      margin-top: 3px;
+    }
+
+    .hero-visual {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .hero-grid-art {
+      width: 100%;
+      max-width: 440px;
+      aspect-ratio: 1;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .art-cell {
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--bg-surface);
+      transition: border-color 0.4s, background 0.4s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      aspect-ratio: 1;
+      cursor: default;
+    }
+
+    .art-cell.lit {
+      border-color: var(--amber);
+      background: var(--amber-glow);
+    }
+
+    .art-cell.featured {
+      grid-column: span 2;
+      grid-row: span 2;
+      font-size: 3.5rem;
+      aspect-ratio: auto;
+    }
+
+    /* ── DELIVERY STRIP ── */
+    .delivery-strip {
+      background: var(--bg-surface);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 5%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 40px;
+      flex-wrap: wrap;
+    }
+
+    .strip-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+    }
+
+    .strip-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--amber-glow);
+      border: 1px solid var(--amber-dim);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      flex-shrink: 0;
+    }
+
+    .strip-item strong { color: var(--text-primary); font-weight: 600; }
+
+    /* ── SECTION HEADER ── */
+    .section-header {
+      text-align: center;
+      padding: 70px 5% 40px;
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    .section-eyebrow {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 12px;
+    }
+
+    .section-header h2 {
+      font-size: clamp(1.6rem, 3vw, 2.4rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      color: var(--text-primary);
+      margin-bottom: 14px;
+    }
+
+    .section-header p {
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+
+    /* ── CATEGORIES ── */
+    .categories-wrap {
+      padding: 0 5% 16px;
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .cat-btn {
+      padding: 8px 20px;
+      border-radius: 100px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 0.82rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    .cat-btn:hover, .cat-btn.active {
+      border-color: var(--amber);
+      color: var(--amber);
+      background: var(--amber-glow);
+    }
+
+    /* ── PRODUCTS GRID ── */
+    .products-section { padding: 0 5% 80px; }
+
+    .products-grid {
+      max-width: 1200px;
+      margin: 24px auto 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 20px;
+    }
+
+    .product-card {
+      background: var(--bg-card);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      transition: border-color 0.25s, transform 0.2s;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .product-card:hover {
+      border-color: var(--amber);
+      transform: translateY(-3px);
+    }
+
+    .product-img {
+      background: var(--bg-surface);
+      height: 200px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 4rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .product-img::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--amber);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.3s ease;
+    }
+
+    .product-card:hover .product-img::after {
+      transform: scaleX(1);
+    }
+
+    .product-badge {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: var(--amber);
+      color: #0D1117;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 4px;
+    }
+
+    .product-body {
+      padding: 18px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .product-cat {
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .product-name {
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      line-height: 1.35;
+      margin-bottom: 8px;
+      flex: 1;
+    }
+
+    .product-desc {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      line-height: 1.55;
+      margin-bottom: 14px;
+    }
+
+    .product-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .product-price {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+    }
+
+    .product-price span {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    .btn-comprar {
+      background: var(--amber);
+      color: #0D1117;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: opacity 0.2s;
+      text-decoration: none;
+    }
+
+    .btn-comprar:hover { opacity: 0.85; }
+
+    /* ── ENVIOS SECTION ── */
+    .envios-section {
+      background: var(--bg-surface);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 70px 5%;
+    }
+
+    .envios-grid {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 50px;
+      align-items: center;
+    }
+
+    .envios-content h2 {
+      font-size: clamp(1.6rem, 2.8vw, 2.2rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      color: var(--text-primary);
+      margin-bottom: 16px;
+    }
+
+    .envios-content h2 em {
+      font-style: normal;
+      color: var(--amber);
+    }
+
+    .envios-content p {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      line-height: 1.7;
+      margin-bottom: 28px;
+    }
+
+    .envios-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .envios-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      font-size: 0.88rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    .envios-list li::before {
+      content: '✓';
+      color: var(--amber);
+      font-weight: 700;
+      font-size: 0.85rem;
+      margin-top: 1px;
+      flex-shrink: 0;
+    }
+
+    .envios-list li strong { color: var(--text-primary); }
+
+    .envios-visual {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .envio-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .envio-icon {
+      width: 44px;
+      height: 44px;
+      background: var(--amber-glow);
+      border: 1px solid var(--amber-dim);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      flex-shrink: 0;
+    }
+
+    .envio-text-title {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .envio-text-sub {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    /* ── PAGOS ── */
+    .pagos-section { padding: 70px 5%; max-width: 1100px; margin: 0 auto; }
+
+    .pagos-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-top: 32px;
+    }
+
+    .pago-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: border-color 0.2s;
+    }
+
+    .pago-card:hover { border-color: var(--border-hover); }
+
+    .pago-icon {
+      font-size: 1.8rem;
+      line-height: 1;
+    }
+
+    .pago-name {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .pago-desc {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    /* ── SOCIAL / REDES ── */
+    .redes-section {
+      background: var(--bg-surface);
+      border-top: 1px solid var(--border);
+      padding: 60px 5%;
+      text-align: center;
+    }
+
+    .redes-title {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 28px;
+    }
+
+    .redes-bar {
+      display: flex;
+      gap: 14px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .red-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 22px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--text-secondary);
+      font-size: 0.82rem;
+      font-weight: 500;
+      text-decoration: none;
+      transition: all 0.2s;
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    .red-btn:hover {
+      border-color: var(--border-hover);
+      color: var(--text-primary);
+      background: var(--amber-glow);
+    }
+
+    .red-btn .red-icon { font-size: 1rem; }
+
+    /* ── FOOTER / LEGAL ── */
+    .footer {
+      background: var(--bg);
+      border-top: 1px solid var(--border);
+      padding: 50px 5% 30px;
+    }
+
+    .footer-grid {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 40px;
+      padding-bottom: 40px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .footer-brand p {
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+      line-height: 1.65;
+      margin-top: 14px;
+    }
+
+    .footer-col h4 {
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+
+    .footer-col ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .footer-col ul a {
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-col ul a:hover { color: var(--text-primary); }
+
+    .footer-bottom {
+      max-width: 1100px;
+      margin: 24px auto 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .footer-bottom p {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .footer-legal-links {
+      display: flex;
+      gap: 20px;
+    }
+
+    .footer-legal-links a {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-legal-links a:hover { color: var(--amber); }
+
+    /* ── WHATSAPP FLOAT ── */
+    .whatsapp-float {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      width: 56px;
+      height: 56px;
+      background: var(--whatsapp);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 20px rgba(37, 211, 102, 0.35);
+      z-index: 200;
+      text-decoration: none;
+      font-size: 1.5rem;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .whatsapp-float:hover {
+      transform: scale(1.1);
+      box-shadow: 0 6px 28px rgba(37, 211, 102, 0.5);
+    }
+
+    .whatsapp-pulse {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      width: 56px;
+      height: 56px;
+      background: rgba(37, 211, 102, 0.3);
+      border-radius: 50%;
+      z-index: 199;
+      animation: wpulse 2s ease-out infinite;
+    }
+
+    @keyframes wpulse {
+      0% { transform: scale(1); opacity: 0.7; }
+      100% { transform: scale(1.9); opacity: 0; }
+    }
+
+    /* ── MODALES LEGALES ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      z-index: 300;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      max-width: 700px;
+      width: 100%;
+      max-height: 80vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-header {
+      padding: 22px 26px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-header h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 1.3rem;
+      line-height: 1;
+      padding: 4px;
+      transition: color 0.2s;
+    }
+
+    .modal-close:hover { color: var(--text-primary); }
+
+    .modal-body {
+      padding: 22px 26px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .modal-body h4 {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--amber);
+      margin: 18px 0 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .modal-body h4:first-child { margin-top: 0; }
+
+    .modal-body p {
+      font-size: 0.84rem;
+      color: var(--text-secondary);
+      line-height: 1.7;
+      margin-bottom: 10px;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .hamburger { display: flex; }
+
+      .nav-links.mobile-open {
+        display: flex;
+        flex-direction: column;
+        position: fixed;
+        top: 64px;
+        left: 0;
+        right: 0;
+        background: var(--bg-surface);
+        border-bottom: 1px solid var(--border);
+        padding: 20px 5%;
+        gap: 18px;
+      }
+
+      .hero {
+        grid-template-columns: 1fr;
+        padding: 60px 5% 50px;
+        gap: 40px;
+      }
+
+      .hero-visual { display: none; }
+
+      .hero-badges { gap: 16px; }
+
+      .envios-grid { grid-template-columns: 1fr; }
+
+      .footer-grid { grid-template-columns: 1fr 1fr; }
+
+      .delivery-strip { gap: 20px; }
+    }
+
+    @media (max-width: 520px) {
+      .footer-grid { grid-template-columns: 1fr; }
+      .footer-bottom { flex-direction: column; align-items: flex-start; }
+    }
+
+    /* ── HIDDEN products filter ── */
+    .product-card[data-cat].hidden { display: none; }
+
+    /* scrollbar */
+    .modal-body::-webkit-scrollbar { width: 4px; }
+    .modal-body::-webkit-scrollbar-track { background: transparent; }
+    .modal-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <a href="#" class="logo">
+    <span class="logo-dot"></span>
+    HobbyCol
+  </a>
+  <ul class="nav-links" id="navLinks">
+    <li><a href="#catalogo">Catálogo</a></li>
+    <li><a href="#envios">Envíos</a></li>
+    <li><a href="#pagos">Pagos</a></li>
+    <li><a href="https://wa.me/573000000000?text=Hola%20HobbyCol%2C%20quiero%20más%20información" target="_blank" class="nav-cta">WhatsApp ↗</a></li>
+  </ul>
+  <button class="hamburger" onclick="toggleMenu()" aria-label="Menú">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-text">
+    <p class="hero-eyebrow">Medellín · Entrega el mismo día</p>
+    <h1>Tecnología que se <em>siente</em> diferente</h1>
+    <p class="hero-desc">Gadgets, audio e iluminación seleccionados a mano para tu estilo de vida. Entrega el mismo día en el Valle de Aburrá si haces tu pedido antes de las 10 a.m.</p>
+    <div class="hero-actions">
+      <a href="#catalogo" class="btn-primary">Ver catálogo →</a>
+      <a href="https://wa.me/573000000000?text=Hola%20HobbyCol%2C%20quiero%20más%20información" target="_blank" class="btn-secondary">Hablar con nosotros</a>
+    </div>
+    <div class="hero-badges">
+      <div class="hero-badge">
+        <span class="hero-badge-num">20</span>
+        <span class="hero-badge-label">productos en catálogo</span>
+      </div>
+      <div class="hero-badge">
+        <span class="hero-badge-num">S/D</span>
+        <span class="hero-badge-label">entrega mismo día</span>
+      </div>
+      <div class="hero-badge">
+        <span class="hero-badge-num">100%</span>
+        <span class="hero-badge-label">garantía de fábrica</span>
+      </div>
+    </div>
+  </div>
+  <div class="hero-visual">
+    <div class="hero-grid-art" id="artGrid">
+      <div class="art-cell featured lit" data-art="featured">🎧</div>
+      <div class="art-cell" data-art="1">💡</div>
+      <div class="art-cell" data-art="2">⌚</div>
+      <div class="art-cell lit" data-art="3">📡</div>
+      <div class="art-cell" data-art="4">🔊</div>
+      <div class="art-cell" data-art="5">🖥️</div>
+      <div class="art-cell lit" data-art="6">🎮</div>
+    </div>
+  </div>
+</section>
+
+<!-- DELIVERY STRIP -->
+<div class="delivery-strip">
+  <div class="strip-item">
+    <div class="strip-icon">⚡</div>
+    <div><strong>Entrega el mismo día</strong><br>Pedidos antes de las 10 a.m.</div>
+  </div>
+  <div class="strip-item">
+    <div class="strip-icon">🏙️</div>
+    <div><strong>Cobertura Valle de Aburrá</strong><br>Medellín, Envigado, Bello, Itagüí…</div>
+  </div>
+  <div class="strip-item">
+    <div class="strip-icon">📦</div>
+    <div><strong>Envíos nacionales</strong><br>Coordinadora · Inter Rapidísimo · Envía</div>
+  </div>
+  <div class="strip-item">
+    <div class="strip-icon">💵</div>
+    <div><strong>Pago contraentrega</strong><br>Efectivo y transferencia al recibir</div>
+  </div>
+</div>
+
+<!-- CATALOGO -->
+<div class="section-header" id="catalogo">
+  <p class="section-eyebrow">Catálogo 2025</p>
+  <h2>Lo que más mueve en Medellín</h2>
+  <p>Selección de gadgets, audio e iluminación con la mejor relación calidad-precio del mercado local.</p>
+</div>
+
+<div class="categories-wrap">
+  <button class="cat-btn active" onclick="filterCat('all', this)">Todos</button>
+  <button class="cat-btn" onclick="filterCat('gadget', this)">Gadgets</button>
+  <button class="cat-btn" onclick="filterCat('audio', this)">Audio</button>
+  <button class="cat-btn" onclick="filterCat('iluminacion', this)">Iluminación</button>
+</div>
+
+<section class="products-section">
+  <div class="products-grid" id="productsGrid">
+
+    <!-- GADGETS -->
+    <div class="product-card" data-cat="gadget">
+      <div class="product-img">🌬️<div class="product-badge">Top venta</div></div>
+      <div class="product-body">
+        <p class="product-cat">Gadgets</p>
+        <p class="product-name">Mini Humidificador Ultrasónico de Madera con LED Cálido</p>
+        <p class="product-desc">Difusor de ambiente con luz LED atenuable. Ideal para oficina y escritorio. Silencioso, recargable por USB-C.</p>
+        <div class="product-footer">
+          <div class="product-price">$75.000 <span>COP</span></div>
+          <a href="https://wa.me/573000000000?text=Hola%2C%20quiero%20el%20Humidificador%20Mini%20Ultrasónico" target="_blank" class="btn-comprar">Pedir →</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="product-card" data-cat="gadget">
+      <div class="product-img">⌚</div>
+      <div class="product-body">
+        <p class="product-cat">Gadgets</p>
+        <p class="product-name">Smartwatch Deportivo con Monitoreo de Salud y Sueño</p>
+        <p class="product-desc">Ritmo cardíaco, SpO2, GPS asistido y notificaciones inteligentes. Compatible Android e iOS.</p>
+        <div class="product-footer">
+          <div class="product-price">$149.000 <span>COP</span></div>
+          <a href="https://wa.me/573000000000?text=Hola%2C%20quiero%20el%20Smartwatch%20Deportivo" target="_blank" class="btn-comprar">Pedir →</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="product-card" data-cat="gadget">
+      <div class="product-img">📱</div>
+      <div class="product-body">
+        <p class="product-cat">Gadgets</p>
+        <p class="product-name">Soporte Magnético para Auto con Carga Inalámbrica 15W</p>
+        <p class="product-desc">MagSafe compatible, giro 360°, ventosa de alta potencia. Carga rápida mientras navegas.</p>
+        <div class="product-footer">
+          <div class="product-price">$89.000 <span>COP</span></div>
+          <a href="https://wa.me/573000000000?text=Hola%2C%20quiero%20el%20Soporte%20Magnético%20para%20Auto" target="_blank" class="btn-comprar">Pedir →</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="product-card" data-cat="gadget">
+      <div class="product-img">🖱️</div>
+      <div class="product-body">
+        <p class="product-cat">Gadgets</p>
+        <p class="product-name">Mouse Inalámbrico Silencioso Ergonómico Vertical</p>
+        <p class="product-desc">Reduce fatiga de muñeca hasta 57%. 2.4GHz, 1600 DPI ajustable, batería para 90 días.</p>
+        <div class="product-footer">
+          <div class="product-price">$98.000 <span>COP</span></div>
+          <a href="https://wa.me/573000000000?text=Hola%2C%20quiero%20el%20Mouse%20Vertical%20Silencioso" target="_blank" class="btn-comprar">Pedir →</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="product-card" data-cat="gadget">
+      <div class="product-img">🔌</div>
+      <div class="product-body">
+        <p class="product-cat">Gadgets</p>
+        <p class="product-name">Hub USB-C 7 en 1 con HDMI 4K y Ethernet Gigabit</p>
+        <p class="product-desc">Convierte tu laptop en estación de trabajo. Compatible MacBook, iPad Pro y Windows.</p>
+        <div class="product-footer">
+          <div class="product-price">$135.000 <span>COP</span></div>
+          <a href="https://wa.me/573000000000?text=Hola%2C%20quiero%20el%20Hub%20USB-C%207%20en%201" target="_blank" class="btn-comprar">Pedir →</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="product-card" data-cat="gadget">
+      <div class="product-img">📷<div class="product-badge">Nuevo</div></div>
+      <div class="product-body">
+        <p class="product-cat">Gadgets</p>
+        <p class="product-name">Webcam 1080p con Micrófono Incorporado y Enfoque Auto</p>
+        <p class="product-desc">Ideal para videollamadas, streaming y home office. Plug & Play, sin drivers.</p>
+        <div class="product-footer">
+          <div class="product-price">$115.000 <span>COP</span></div>
+          <a href="https://wa.me/573000000000?text=Hola%2C%20quiero%20la%20Webcam%201080p" target="_blank" class="btn-comprar">Pedir →</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="product-card" data-cat="gadget">
+      <div class="product-img">⌨️</div>
+      <div class="product-body">
+        <p class="product-cat">Gadgets</p>
+        <p class="product-name">Teclado Mecánico Compacto 75% con Retroiluminación RGB</p>
+        <p class="product-desc">Switches Red lineales, base aluminio, compatible Bluetooth + cable. Anti-ghosting total.</p>
+        <div class="product-footer">
+          <div class="product-price">$195.000 <span>COP</span></div>
+          <a href="https://wa.me/573000000000?text=Hola%2C%20quiero%20el%20Teclado%20Mecánico%2075%25" target="_blank" class="btn-comprar">Pedir →</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- AUDIO -->
+    <div class="product-card" data-cat="audio">
+      <div class="product-img">🎧<div class="product-badge">Top venta</div></div>
+      <div class="product-body">
+        <p class="product-cat">Audio</p>
+        <p class="product-name">Audífonos In-Ear TWS con Cancelación Activa de Ruido Pro</p>
+        <p class="product-desc">ANC Híbrido de doble capa. Hasta 32h de batería total, resistencia IPX5, estuche de carga compacto.</p>
+        <div class="product-footer">
+          <div class="product-price">$120.000 <span>COP</span></div>
+          <a href="https://wa.me/573000000000?text=Hola%2C%20quiero%20los%20Audífonos%20In-Ear%20ANC%20Pro" target="_blank" class="btn-comprar">Pedir →</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="product-card" data-cat="audio">
+      <div class="product-img">🎮</div>
+      <div class="product-body">
+        <p class="product-cat">Audio</p>
+        <p class="product-name">Diadema Gamer Over-Ear con Micrófono Omnidireccional Retráctil</p>
+        <p class="product-desc">Drivers 50mm con audio envolvente 7.1 virtual. Compatible PC, PS5 y Xbox. Almohadillas memory foam.</p>
+        <div class="product-footer">
+          <div class="product-price">$185.000 <span>COP</span></div>
+          <a href="https://wa.me/573000000000?text=Hola%2C%20quiero%20la%20Diadema%20Gamer%20Over-Ear" target="_blank" class="btn-comprar">Pedir →</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="product-card" data-cat="audio">
+      <div class="product-img">🔊</div>
+      <div class="product-body">
+        <p class="product-cat">Audio</p>
+        <p class="product-name">Parlante Bluetooth Portátil 360° con LED de Espectro</p>
+        <p class="product-desc">20W RMS, resistente al agua IPX6, batería 12h. Ideal para exteriores y reuniones.</p>
+        <div class="product-footer">
+          <div class="product-price">$145.000 <span>COP</span></div>
+          <a href="https://wa.me/573000000000?text=Hola%2C%20quiero%20el%20Parlante%20Bluetooth%20360" target="_blank" class="btn-comprar">Pedir →</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="product-card" data-cat="audio">
+      <div class="product-img">🎙️<div class="product-badge">Nuevo</div></div>
+      <div class="product-body">
+        <p class="product-cat">Audio</p>
+        <p class="product-name">Micrófono de Condensador USB Cardioide para Streaming</p>
+        <p class="product-desc">Patrón cardioide, 192kHz/24bit, con brazo articulado incluido. Ideal para podcasts y gaming.</p>
+        <div class="product-footer">
+          <div class="product-price">$168.000 <span>COP</span></div>
+          <a href="https://wa.me/573000000000?text=Hola%2C%20quiero%20el%20Micrófono%20USB%20para%20Streaming" target="_blank" class="btn-comprar">Pedir →</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="product-card" data-cat="audio">
+      <div class="product-img">📻</div>
+      <div class="product-body">
+        <p class="product-cat">Audio</p>
+        <p class="product-name">Audífonos Diadema Inalámbricos On-Ear Plegables</p>
+        <p class="product-desc">30h de autonomía, control por toque, bajo potenciado. Diseño plegable ultracompacto para viaje.</p>
+        <div class="product-footer">
+          <div class="product-price">$110.000 <span>COP</span></div>
+          <a href="https://wa.me/573000000000?text=Hola%2C%20quiero%20los%20Audífonos%20Diadema%20Plegables" target="_blank" class="btn-comprar">Pedir →</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- ILUMINACION -->
+    <div class="product-card" data-cat="iluminacion">
+      <div class="product-img">💡<div class="product-badge">Top venta</div></div>
+      <div class="product-body">
+        <p class="product-cat">Iluminación</p>
+        <p class="product-name">Lámpara de Escritorio Minimalista con Carga Inalámbrica 10W</p>
+        <p class="product-desc">Temperatura ajustable 3 tonos, intensidad en 10 niveles. Base de carga Qi integrada para tu celular.</p>
+        <div class="product-footer">
+          <div class="product-price">$95.000 <span>COP</span></div>
+          <a href="https://wa.me/573000000000?text=Hola%2C%20quiero%20la%20Lámpara%20de%20Escritorio%20con%20carga" target="_blank" class="btn-comprar">Pedir →</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="product-card" data-cat="iluminacion">
+      <div class="product-img">🖥️</div>
+      <div class="product-body">
+        <p class="product-cat">Iluminación</p>
+        <p class="product-name">Barra de Luz LED RGB Suspendida para Monitor</p>
+        <p class="product-desc">Sin reflejos en pantalla, 3 zonas de color independientes. Control táctil y modo automático.</p>
+        <div class="product-footer">
+          <div class="product-price">$135.000 <span>COP</span></div>
+          <a href="https://wa.me/573000000000?text=Hola%2C%20quiero%20la%20Barra%20LED%20RGB%20para%20Monitor" target="_blank" class="btn-comprar">Pedir →</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="product-card" data-cat="iluminacion">
+      <div class="product-img">🌈<div class="product-badge">Nuevo</div></div>
+      <div class="product-body">
+        <p class="product-cat">Iluminación</p>
+        <p class="product-name">Tira LED Inteligente 5m con Control por App y Voz</p>
+        <p class="product-desc">16 millones de colores, sincronización con música, compatible Alexa y Google. Adhesivo 3M incluido.</p>
+        <div class="product-footer">
+          <div class="product-price">$78.000 <span>COP</span></div>
+          <a href="https://wa.me/573000000000?text=Hola%2C%20quiero%20la%20Tira%20LED%20Inteligente%205m" target="_blank" class="btn-comprar">Pedir →</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="product-card" data-cat="iluminacion">
+      <div class="product-img">🌙</div>
+      <div class="product-body">
+        <p class="product-cat">Iluminación</p>
+        <p class="product-name">Luz de Ambiente Nocturna con Sensor de Movimiento PIR</p>
+        <p class="product-desc">Enciende automáticamente en la oscuridad. Magnética, recargable USB-C, 3 tonos de blanco.</p>
+        <div class="product-footer">
+          <div class="product-price">$55.000 <span>COP</span></div>
+          <a href="https://wa.me/573000000000?text=Hola%2C%20quiero%20la%20Luz%20de%20Ambiente%20con%20Sensor" target="_blank" class="btn-comprar">Pedir →</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="product-card" data-cat="iluminacion">
+      <div class="product-img">🎥</div>
+      <div class="product-body">
+        <p class="product-cat">Iluminación</p>
+        <p class="product-name">Ring Light LED 10" para Video y Fotografía con Trípode</p>
+        <p class="product-desc">3200-6500K, 10 niveles de intensidad, soporte para celular incluido. Ideal para creadores de contenido.</p>
+        <div class="product-footer">
+          <div class="product-price">$118.000 <span>COP</span></div>
+          <a href="https://wa.me/573000000000?text=Hola%2C%20quiero%20el%20Ring%20Light%2010%22%20con%20Trípode" target="_blank" class="btn-comprar">Pedir →</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="product-card" data-cat="iluminacion">
+      <div class="product-img">⚡</div>
+      <div class="product-body">
+        <p class="product-cat">Iluminación</p>
+        <p class="product-name">Panel LED de Retroiluminación para TV con Efecto Ambilight</p>
+        <p class="product-desc">Kit de 4 tiras para TVs 40-65". Sincroniza con el contenido de pantalla via cámara AI. Control por app.</p>
+        <div class="product-footer">
+          <div class="product-price">$92.000 <span>COP</span></div>
+          <a href="https://wa.me/573000000000?text=Hola%2C%20quiero%20el%20Panel%20LED%20Ambilight%20para%20TV" target="_blank" class="btn-comprar">Pedir →</a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ENVIOS -->
+<section class="envios-section" id="envios">
+  <div class="envios-grid">
+    <div class="envios-content">
+      <p class="section-eyebrow" style="font-size:0.7rem;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--amber);margin-bottom:12px;">Logística HobbyCol</p>
+      <h2>Entrega <em>hoy mismo</em> en Medellín</h2>
+      <p>Cumplimos lo que prometemos. Si haces tu pedido antes de las 10:00 a.m., lo tienes en tu puerta el mismo día. Si no, al día hábil siguiente — sin excusas.</p>
+      <ul class="envios-list">
+        <li><strong>Same-day delivery:</strong> Pedidos antes de las 10 a.m. en Medellín y municipios del Valle de Aburrá.</li>
+        <li><strong>Pago contraentrega:</strong> Pagas en efectivo o transferencia inmediata al recibir el producto. Sin riesgos.</li>
+        <li><strong>Envíos nacionales:</strong> Coordinadora, Inter Rapidísimo y Envía. 2 a 4 días hábiles a cualquier ciudad.</li>
+        <li><strong>Cobertura local:</strong> Medellín, Envigado, Sabaneta, Itagüí, Bello, La Estrella y Copacabana.</li>
+      </ul>
+    </div>
+    <div class="envios-visual">
+      <div class="envio-card">
+        <div class="envio-icon">⚡</div>
+        <div>
+          <p class="envio-text-title">Valle de Aburrá — Mismo día</p>
+          <p class="envio-text-sub">Pedidos confirmados antes de las 10:00 a.m.</p>
+        </div>
+      </div>
+      <div class="envio-card">
+        <div class="envio-icon">💵</div>
+        <div>
+          <p class="envio-text-title">Contraentrega local</p>
+          <p class="envio-text-sub">Pago en efectivo o transferencia al recibir</p>
+        </div>
+      </div>
+      <div class="envio-card">
+        <div class="envio-icon">📦</div>
+        <div>
+          <p class="envio-text-title">Nacional — 2 a 4 días hábiles</p>
+          <p class="envio-text-sub">Coordinadora · Inter Rapidísimo · Envía</p>
+        </div>
+      </div>
+      <div class="envio-card">
+        <div class="envio-icon">🛡️</div>
+        <div>
+          <p class="envio-text-title">Garantía 30 días</p>
+          <p class="envio-text-sub">Defectos de fábrica cubiertos desde la entrega</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PAGOS -->
+<section id="pagos">
+  <div class="section-header">
+    <p class="section-eyebrow">Medios de pago</p>
+    <h2>Paga como quieras</h2>
+    <p>Múltiples opciones disponibles desde el día uno. Integraciones con MercadoPago y PayU próximamente.</p>
+  </div>
+  <div class="pagos-section">
+    <div class="pagos-grid">
+      <div class="pago-card">
+        <div class="pago-icon">🏦</div>
+        <p class="pago-name">Bancolombia</p>
+        <p class="pago-desc">Transferencia directa a cuenta. Te enviamos los datos por WhatsApp al confirmar tu pedido.</p>
+      </div>
+      <div class="pago-card">
+        <div class="pago-icon">📲</div>
+        <p class="pago-name">Nequi</p>
+        <p class="pago-desc">La forma más rápida. Transferencia instantánea desde tu app Nequi antes del despacho.</p>
+      </div>
+      <div class="pago-card">
+        <div class="pago-icon">💵</div>
+        <p class="pago-name">Contraentrega</p>
+        <p class="pago-desc">Paga en efectivo o transferencia en el momento de recibir tu producto. Solo para Medellín y municipios.</p>
+      </div>
+      <div class="pago-card">
+        <div class="pago-icon">💳</div>
+        <p class="pago-name">MercadoPago · PayU</p>
+        <p class="pago-desc">Tarjetas crédito/débito y PSE. Habilitación próximamente con pasarela segura certificada.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- REDES SOCIALES -->
+<section class="redes-section">
+  <p class="redes-title">Síguenos en redes</p>
+  <div class="redes-bar">
+    <a href="#" class="red-btn" target="_blank">
+      <span class="red-icon">📸</span> Instagram
+    </a>
+    <a href="#" class="red-btn" target="_blank">
+      <span class="red-icon">🎵</span> TikTok
+    </a>
+    <a href="#" class="red-btn" target="_blank">
+      <span class="red-icon">📘</span> Facebook
+    </a>
+    <a href="https://wa.me/573000000000" class="red-btn" target="_blank">
+      <span class="red-icon">💬</span> WhatsApp
+    </a>
+    <a href="#" class="red-btn" target="_blank">
+      <span class="red-icon">▶️</span> YouTube
+    </a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <a href="#" class="logo">
+        <span class="logo-dot"></span> HobbyCol
+      </a>
+      <p>Tecnología y estilo para Medellín y Colombia. Gadgets, audio e iluminación con entrega el mismo día en el Valle de Aburrá.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Tienda</h4>
+      <ul>
+        <li><a href="#catalogo">Gadgets</a></li>
+        <li><a href="#catalogo">Audio</a></li>
+        <li><a href="#catalogo">Iluminación</a></li>
+        <li><a href="#envios">Envíos</a></li>
+        <li><a href="#pagos">Pagos</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Soporte</h4>
+      <ul>
+        <li><a href="https://wa.me/573000000000" target="_blank">WhatsApp</a></li>
+        <li><a href="#envios">Rastrear pedido</a></li>
+        <li><a href="#" onclick="openModal('modal-garantias')">Garantías</a></li>
+        <li><a href="#" onclick="openModal('modal-garantias')">Devoluciones</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Legal</h4>
+      <ul>
+        <li><a href="#" onclick="openModal('modal-tyc')">Términos y condiciones</a></li>
+        <li><a href="#" onclick="openModal('modal-privacidad')">Política de privacidad</a></li>
+        <li><a href="#" onclick="openModal('modal-garantias')">Garantías y devoluciones</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>© 2025 HobbyCol — Medellín, Colombia. Todos los derechos reservados.</p>
+    <div class="footer-legal-links">
+      <a href="#" onclick="openModal('modal-tyc')">Términos</a>
+      <a href="#" onclick="openModal('modal-privacidad')">Privacidad</a>
+      <a href="#" onclick="openModal('modal-garantias')">Garantías</a>
+    </div>
+  </div>
+</footer>
+
+<!-- WHATSAPP FLOAT -->
+<div class="whatsapp-pulse"></div>
+<a href="https://wa.me/573000000000?text=Hola%20HobbyCol%2C%20quiero%20más%20información" class="whatsapp-float" target="_blank" aria-label="Contactar por WhatsApp">💬</a>
+
+<!-- MODALES LEGALES -->
+
+<!-- T&C -->
+<div class="modal-overlay" id="modal-tyc">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Términos y Condiciones de Uso</h3>
+      <button class="modal-close" onclick="closeModal('modal-tyc')">✕</button>
+    </div>
+    <div class="modal-body">
+      <h4>1. Objeto y ámbito de aplicación</h4>
+      <p>Los presentes Términos y Condiciones regulan las transacciones comerciales realizadas en el sitio web de HobbyCol, e-commerce domiciliado y operado en la ciudad de Medellín, Colombia. Al acceder y realizar una compra en este portal, el usuario acepta de manera inequívoca las condiciones aquí estipuladas, de conformidad con la normativa colombiana vigente.</p>
+
+      <h4>2. Formalización de la compra y precios</h4>
+      <p>Todos los precios publicados están expresados en Pesos Colombianos (COP) e incluyen IVA cuando aplique. HobbyCol se reserva el derecho de modificar precios e inventario sin previo aviso. La compra se consolida una vez el pago sea confirmado o, en la modalidad contraentrega, cuando se valide la dirección de entrega y sea aceptada por nuestro equipo logístico.</p>
+      <p>Los pedidos están sujetos a disponibilidad de inventario. En caso de no disponibilidad del producto pagado, HobbyCol realizará el reembolso total dentro de los 5 días hábiles siguientes o gestionará un cambio de producto de igual o mayor valor, a elección del cliente.</p>
+
+      <h4>3. Logística de entrega</h4>
+      <p>Para el Valle de Aburrá (Medellín, Envigado, Sabaneta, Itagüí, Bello, La Estrella, Copacabana), el beneficio de entrega el mismo día aplica exclusivamente para órdenes validadas antes de las 10:00 a.m. de lunes a sábado. Los pedidos confirmados después de ese horario se despacharán el siguiente día hábil.</p>
+      <p>El cliente se compromete a suministrar datos de entrega exactos y a garantizar que una persona apta y mayor de edad reciba el pedido. Ante fallas de entrega contraentrega por causas imputables al cliente (ausencia, dirección incorrecta, rechazo injustificado), HobbyCol se reserva el derecho de cobrar los costos logísticos generados y podrá restringir futuros despachos bajo esa modalidad.</p>
+
+      <h4>4. Responsabilidad y limitaciones</h4>
+      <p>HobbyCol no se responsabiliza por daños derivados del mal uso de los productos, modificaciones realizadas por el usuario, o circunstancias de fuerza mayor que impidan la entrega en los plazos estipulados (bloqueos viales, desastres naturales, paros cívicos). En estos casos se informará oportunamente al cliente y se coordinará una nueva fecha de entrega.</p>
+
+      <h4>5. Modificaciones a los términos</h4>
+      <p>HobbyCol se reserva el derecho de actualizar estos Términos y Condiciones en cualquier momento. Los cambios serán publicados en esta misma página con indicación de la fecha de actualización. El uso continuado del sitio web posterior a la publicación de cambios implica la aceptación de los nuevos términos.</p>
+    </div>
+  </div>
+</div>
+
+<!-- PRIVACIDAD -->
+<div class="modal-overlay" id="modal-privacidad">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Política de Privacidad y Tratamiento de Datos</h3>
+      <button class="modal-close" onclick="closeModal('modal-privacidad')">✕</button>
+    </div>
+    <div class="modal-body">
+      <h4>Marco legal aplicable</h4>
+      <p>En cumplimiento de la Ley 1581 de 2012 (Régimen General de Protección de Datos Personales en Colombia) y el Decreto Reglamentario 1377 de 2013, HobbyCol actúa como Responsable del Tratamiento de los datos personales de sus clientes.</p>
+
+      <h4>1. Datos recolectados</h4>
+      <p>HobbyCol recolecta únicamente los datos estrictamente necesarios para la operación comercial: nombre completo, número de identificación, dirección de domicilio, número de celular y, cuando aplique, correo electrónico. No recolectamos datos financieros sensibles (contraseñas bancarias, números completos de tarjetas).</p>
+
+      <h4>2. Finalidad del tratamiento</h4>
+      <p>Los datos recolectados se utilizan exclusivamente para: (a) coordinar la entrega de los productos con mensajeros locales y transportadoras nacionales; (b) proveer soporte posventa a través de WhatsApp; (c) enviar confirmaciones de pedido y comprobantes de pago; (d) contactar al cliente ante novedades en su pedido. No vendemos, alquilamos ni compartimos tu información con terceros con fines publicitarios.</p>
+
+      <h4>3. Derechos del titular — Habeas Data</h4>
+      <p>En tu calidad de titular de la información, tienes derecho a conocer, actualizar, rectificar o solicitar la supresión de tus datos personales de nuestra base de datos en cualquier momento. Para ejercer estos derechos, comunícate directamente con nosotros por WhatsApp o al correo de atención habilitado en la web. HobbyCol dará respuesta a tu solicitud dentro de los 15 días hábiles siguientes a su recepción, conforme lo dispone la Ley 1581 de 2012.</p>
+
+      <h4>4. Almacenamiento y seguridad</h4>
+      <p>La información de clientes se almacena en sistemas protegidos con acceso restringido y se conserva durante el tiempo necesario para la prestación del servicio y el cumplimiento de obligaciones legales. Transcurrido ese tiempo, la información es eliminada de forma segura.</p>
+
+      <h4>5. Autorización</h4>
+      <p>Al realizar una compra o solicitar información a través de nuestros canales, el cliente autoriza expresamente a HobbyCol para el tratamiento de sus datos personales en los términos aquí descritos.</p>
+    </div>
+  </div>
+</div>
+
+<!-- GARANTIAS -->
+<div class="modal-overlay" id="modal-garantias">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Política de Garantías, Devoluciones y Retracto</h3>
+      <button class="modal-close" onclick="closeModal('modal-garantias')">✕</button>
+    </div>
+    <div class="modal-body">
+      <h4>Marco legal</h4>
+      <p>De conformidad con la Ley 1480 de 2011 (Estatuto del Consumidor en Colombia), HobbyCol garantiza los derechos de sus consumidores en las siguientes condiciones:</p>
+
+      <h4>1. Derecho de retracto</h4>
+      <p>Al tratarse de ventas por comercio electrónico, el consumidor tiene derecho a retractarse de la compra dentro de los cinco (5) días hábiles siguientes a la entrega del producto, sin necesidad de expresar causa alguna. Para que proceda el retracto, el producto debe ser devuelto en perfectas condiciones, con empaques originales intactos, manuales y todos sus accesorios completos. Los costos de transporte de la devolución correrán por cuenta del comprador, salvo que el retracto obedezca a un incumplimiento de HobbyCol.</p>
+
+      <h4>2. Garantía por defectos de fábrica</h4>
+      <p>Todos los productos de las categorías gadgets, audio e iluminación cuentan con garantía de treinta (30) días calendario a partir de la fecha de entrega, salvo que la factura especifique un período diferente. Esta garantía cubre exclusivamente defectos de fabricación comprobables.</p>
+      <p>La garantía no cubre: daños por caídas, golpes o mal uso; daños por humedad, líquidos o sobrecargas eléctricas; intervención de terceros no autorizados; desgaste normal por uso; daños estéticos (rayones, manchas) no reportados al momento de recibir el producto.</p>
+
+      <h4>3. Proceso de garantía</h4>
+      <p>Para iniciar un trámite de garantía: (a) reporta la falla por WhatsApp dentro del período de cobertura; (b) adjunta evidencia en video o fotografía que describa el defecto; (c) HobbyCol evaluará el caso dentro de las 48 horas hábiles siguientes y coordinará la reposición, reparación o reembolso según corresponda; (d) los costos de envío para devolución en garantía serán asumidos por HobbyCol cuando el defecto sea confirmado.</p>
+
+      <h4>4. Productos sin garantía aplicable</h4>
+      <p>No aplica garantía sobre consumibles, accesorios de desgaste (almohadillas, cables de reemplazo) ni sobre daños ocurridos después de la apertura del precinto de seguridad original en productos que así lo requieran.</p>
+
+      <h4>5. Reembolsos</h4>
+      <p>Los reembolsos aprobados se realizarán dentro de los diez (10) días hábiles siguientes a la confirmación de la garantía o retracto, a través del mismo medio de pago utilizado en la compra original o por transferencia bancaria a la cuenta indicada por el cliente.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  function filterCat(cat, btn) {
+    document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.product-card').forEach(card => {
+      if (cat === 'all' || card.dataset.cat === cat) {
+        card.classList.remove('hidden');
+      } else {
+        card.classList.add('hidden');
+      }
+    });
+  }
+
+  function toggleMenu() {
+    document.getElementById('navLinks').classList.toggle('mobile-open');
+  }
+
+  function openModal(id) {
+    document.getElementById(id).classList.add('open');
+    document.body.style.overflow = 'hidden';
+    return false;
+  }
+
+  function closeModal(id) {
+    document.getElementById(id).classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', function(e) {
+      if (e.target === overlay) {
+        overlay.classList.remove('open');
+        document.body.style.overflow = '';
+      }
+    });
+  });
+
+  const artCells = document.querySelectorAll('.art-cell:not(.featured)');
+  setInterval(() => {
+    const i = Math.floor(Math.random() * artCells.length);
+    artCells[i].classList.toggle('lit');
+  }, 700);
+</script>
+</body>
+</html>
