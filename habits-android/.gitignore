@@ -1,0 +1,8 @@
+# Build output and local machine paths
+build/
+.gradle/
+local.properties
+
+# Signing material — keep this file, never commit it. Losing it means future
+# builds cannot update an already-installed copy in place.
+keystore/

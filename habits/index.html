@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Hábitos</title>
+  <meta name="description" content="Seguimiento de hábitos, ejercicio y estado de ánimo, sin conexión y sin cuentas.">
+  <meta name="theme-color" content="#0D1117">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/favicon-32.png" sizes="32x32">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Hábitos">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main" data-i18n="skipToContent">Ir al contenido</a>
+
+  <header class="app-bar">
+    <div class="app-bar-title">
+      <span class="app-mark" aria-hidden="true"></span>
+      <h1 id="viewTitle">Hoy</h1>
+    </div>
+    <div class="app-bar-actions">
+      <button type="button" class="icon-btn" id="langToggle" title="Language" aria-label="Language">
+        <span id="langToggleLabel">EN</span>
+      </button>
+      <button type="button" class="icon-btn" id="themeToggle" title="Tema" aria-label="Tema">
+        <svg viewBox="0 0 24 24" aria-hidden="true" width="20" height="20"><use href="#i-theme"></use></svg>
+      </button>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- ── TODAY ─────────────────────────────────────────────────────── -->
+    <section class="view" id="view-today" aria-labelledby="todayHeading">
+      <div class="view-inner">
+        <div class="day-strip" id="dayStrip" role="tablist" aria-label="Días"></div>
+
+        <h2 class="sr-only" id="todayHeading" data-i18n="navToday">Hoy</h2>
+
+        <div class="summary-card">
+          <div class="summary-ring">
+            <svg viewBox="0 0 120 120" width="104" height="104" aria-hidden="true">
+              <circle class="ring-track" cx="60" cy="60" r="52" />
+              <circle class="ring-value" id="ringValue" cx="60" cy="60" r="52" />
+            </svg>
+            <div class="summary-ring-label">
+              <strong id="summaryPct">0%</strong>
+              <span id="summaryCount">0/0</span>
+            </div>
+          </div>
+          <div class="summary-stats">
+            <p class="summary-date" id="summaryDate"></p>
+            <div class="stat-row">
+              <div class="stat-tile">
+                <span class="stat-value" id="statStreak">0</span>
+                <span class="stat-label" data-i18n="statBestStreak">Mejor racha activa</span>
+              </div>
+              <div class="stat-tile">
+                <span class="stat-value" id="statWeek">0%</span>
+                <span class="stat-label" data-i18n="statWeek">Últimos 7 días</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <section class="card mood-card" aria-labelledby="moodHeading">
+          <div class="card-head">
+            <h3 id="moodHeading" data-i18n="moodTitle">¿Cómo te sientes?</h3>
+            <span class="card-hint" id="moodHint"></span>
+          </div>
+          <div class="mood-scale" id="moodScale" role="radiogroup" aria-labelledby="moodHeading"></div>
+          <div class="mood-extra" id="moodExtra" hidden>
+            <label class="field">
+              <span class="field-label" data-i18n="moodEnergy">Energía</span>
+              <input type="range" id="moodEnergy" min="1" max="5" step="1" value="3">
+              <output id="moodEnergyOut" class="field-hint"></output>
+            </label>
+            <label class="field">
+              <span class="field-label" data-i18n="moodNote">Nota (opcional)</span>
+              <textarea id="moodNote" rows="2" maxlength="500" data-i18n-placeholder="moodNotePlaceholder"></textarea>
+            </label>
+          </div>
+        </section>
+
+        <section aria-labelledby="listHeading">
+          <div class="section-head">
+            <h3 id="listHeading" data-i18n="todaysHabits">Hábitos de hoy</h3>
+            <label class="switch-inline">
+              <input type="checkbox" id="showAllToggle">
+              <span data-i18n="showAll">Ver todos</span>
+            </label>
+          </div>
+          <ul class="habit-list" id="habitList"></ul>
+          <div class="empty-state" id="todayEmpty" hidden>
+            <p data-i18n="emptyTodayTitle">Nada programado para hoy.</p>
+            <button type="button" class="btn btn-primary" data-action="new-habit" data-i18n="addHabit">Nuevo hábito</button>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <!-- ── HABITS ────────────────────────────────────────────────────── -->
+    <section class="view" id="view-habits" hidden aria-labelledby="habitsHeading">
+      <div class="view-inner">
+        <div class="section-head">
+          <h2 id="habitsHeading" data-i18n="navHabits">Hábitos</h2>
+          <button type="button" class="btn btn-primary btn-sm" data-action="new-habit">
+            <span aria-hidden="true">+</span> <span data-i18n="addHabit">Nuevo hábito</span>
+          </button>
+        </div>
+        <ul class="manage-list" id="manageList"></ul>
+        <div class="empty-state" id="habitsEmpty" hidden>
+          <p data-i18n="emptyHabitsTitle">Todavía no tienes hábitos.</p>
+          <p class="muted" data-i18n="emptyHabitsBody">Empieza con uno pequeño: dos minutos de respiración, un vaso de agua, diez flexiones.</p>
+          <div class="preset-grid" id="presetGrid"></div>
+        </div>
+        <details class="archive" id="archiveBlock" hidden>
+          <summary data-i18n="archived">Archivados</summary>
+          <ul class="manage-list" id="archiveList"></ul>
+        </details>
+      </div>
+    </section>
+
+    <!-- ── PROGRESS ──────────────────────────────────────────────────── -->
+    <section class="view" id="view-progress" hidden aria-labelledby="progressHeading">
+      <div class="view-inner">
+        <h2 id="progressHeading" data-i18n="navProgress">Progreso</h2>
+
+        <div class="filter-row" role="group" aria-labelledby="rangeLabel">
+          <span class="sr-only" id="rangeLabel" data-i18n="rangeLabel">Rango de fechas</span>
+          <div class="segmented" id="rangeSelect"></div>
+        </div>
+
+        <div class="stat-grid" id="progressStats"></div>
+
+        <figure class="card chart-card" id="figMood">
+          <figcaption>
+            <h3 data-i18n="chartMoodTitle">Ánimo en el tiempo</h3>
+            <p class="chart-sub" data-i18n="chartMoodSub">1 = muy mal · 5 = muy bien</p>
+          </figcaption>
+          <div class="chart-host" id="chartMood"></div>
+          <p class="chart-empty" id="chartMoodEmpty" hidden data-i18n="chartNoMood">Registra tu ánimo unos días para ver la tendencia.</p>
+        </figure>
+
+        <figure class="card chart-card" id="figRates">
+          <figcaption>
+            <h3 data-i18n="chartRatesTitle">Cumplimiento por hábito</h3>
+            <p class="chart-sub" id="chartRatesSub"></p>
+          </figcaption>
+          <div class="chart-host" id="chartRates"></div>
+          <p class="chart-empty" id="chartRatesEmpty" hidden data-i18n="chartNoData">Sin datos en este rango.</p>
+        </figure>
+
+        <figure class="card chart-card" id="figHeat">
+          <figcaption>
+            <h3 data-i18n="chartHeatTitle">Calendario</h3>
+            <label class="field inline">
+              <span class="sr-only" data-i18n="chartHeatPick">Elegir hábito</span>
+              <select id="heatHabit"></select>
+            </label>
+          </figcaption>
+          <div class="chart-host" id="chartHeat"></div>
+        </figure>
+
+        <figure class="card chart-card" id="figCorr">
+          <figcaption>
+            <h3 data-i18n="chartCorrTitle">Ánimo y hábitos</h3>
+            <p class="chart-sub" data-i18n="chartCorrSub">Ánimo medio los días que cumples frente a los que no.</p>
+          </figcaption>
+          <div class="chart-host" id="chartCorr"></div>
+          <p class="chart-empty" id="chartCorrEmpty" hidden data-i18n="chartNoCorr">Hacen falta más días con ánimo y hábitos registrados.</p>
+        </figure>
+
+        <details class="card table-card" id="tableCard">
+          <summary data-i18n="viewTable">Ver como tabla</summary>
+          <div class="table-scroll">
+            <table id="dataTable">
+              <thead id="dataTableHead"></thead>
+              <tbody id="dataTableBody"></tbody>
+            </table>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <!-- ── SETTINGS ──────────────────────────────────────────────────── -->
+    <section class="view" id="view-settings" hidden aria-labelledby="settingsHeading">
+      <div class="view-inner">
+        <h2 id="settingsHeading" data-i18n="navSettings">Ajustes</h2>
+
+        <section class="card setting-group" aria-labelledby="setAppearance">
+          <h3 id="setAppearance" data-i18n="setAppearance">Apariencia</h3>
+          <div class="setting-row">
+            <label for="langSelect" data-i18n="setLanguage">Idioma</label>
+            <select id="langSelect">
+              <option value="es">Español</option>
+              <option value="en">English</option>
+            </select>
+          </div>
+          <div class="setting-row">
+            <label for="themeSelect" data-i18n="setTheme">Tema</label>
+            <select id="themeSelect">
+              <option value="system" data-i18n="themeSystem">Sistema</option>
+              <option value="dark" data-i18n="themeDark">Oscuro</option>
+              <option value="light" data-i18n="themeLight">Claro</option>
+            </select>
+          </div>
+          <div class="setting-row">
+            <label for="weekStart" data-i18n="setWeekStart">La semana empieza el</label>
+            <select id="weekStart">
+              <option value="1" data-i18n="dowMon">Lunes</option>
+              <option value="0" data-i18n="dowSun">Domingo</option>
+            </select>
+          </div>
+        </section>
+
+        <section class="card setting-group" aria-labelledby="setData">
+          <h3 id="setData" data-i18n="setData">Tus datos</h3>
+          <p class="muted" data-i18n="dataBlurb">Todo se guarda solo en este navegador. No hay cuentas ni servidores. Exporta de vez en cuando para no perder nada.</p>
+          <div class="button-row">
+            <button type="button" class="btn" id="btnExport" data-i18n="exportData">Exportar JSON</button>
+            <button type="button" class="btn" id="btnImport" data-i18n="importData">Importar JSON</button>
+            <button type="button" class="btn btn-danger" id="btnReset" data-i18n="resetData">Borrar todo</button>
+          </div>
+          <input type="file" id="importFile" accept="application/json,.json" hidden>
+          <p class="muted small" id="storageInfo"></p>
+        </section>
+
+        <section class="card setting-group" aria-labelledby="setApp">
+          <h3 id="setApp" data-i18n="setApp">Aplicación</h3>
+          <div class="button-row">
+            <button type="button" class="btn btn-primary" id="btnInstall" hidden data-i18n="installApp">Instalar app</button>
+          </div>
+          <p class="muted small" id="installHint"></p>
+          <p class="muted small" data-i18n="version">Hábitos v1.0 · offline</p>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <nav class="tab-bar" id="tabBar" aria-label="Secciones">
+    <button type="button" class="tab" data-view="today" aria-current="page">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-today"></use></svg>
+      <span data-i18n="navToday">Hoy</span>
+    </button>
+    <button type="button" class="tab" data-view="habits">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-list"></use></svg>
+      <span data-i18n="navHabits">Hábitos</span>
+    </button>
+    <button type="button" class="tab" data-view="progress">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-chart"></use></svg>
+      <span data-i18n="navProgress">Progreso</span>
+    </button>
+    <button type="button" class="tab" data-view="settings">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-gear"></use></svg>
+      <span data-i18n="navSettings">Ajustes</span>
+    </button>
+  </nav>
+
+  <!-- ── HABIT EDITOR ────────────────────────────────────────────────── -->
+  <dialog class="sheet" id="habitDialog" aria-labelledby="habitDialogTitle">
+    <form method="dialog" id="habitForm">
+      <header class="sheet-head">
+        <h2 id="habitDialogTitle" data-i18n="addHabit">Nuevo hábito</h2>
+        <button type="button" class="icon-btn" data-close aria-label="Cerrar">
+          <svg viewBox="0 0 24 24" aria-hidden="true" width="20" height="20"><use href="#i-close"></use></svg>
+        </button>
+      </header>
+
+      <div class="sheet-body">
+        <label class="field">
+          <span class="field-label" data-i18n="fieldName">Nombre</span>
+          <input type="text" id="fName" required maxlength="60" data-i18n-placeholder="fieldNamePlaceholder">
+        </label>
+
+        <div class="field">
+          <span class="field-label" data-i18n="fieldIcon">Icono</span>
+          <div class="emoji-grid" id="emojiGrid" role="radiogroup" aria-label="Icono"></div>
+        </div>
+
+        <div class="field">
+          <span class="field-label" data-i18n="fieldColor">Color</span>
+          <div class="swatch-row" id="colorRow" role="radiogroup" aria-label="Color"></div>
+        </div>
+
+        <label class="field">
+          <span class="field-label" data-i18n="fieldCategory">Categoría</span>
+          <select id="fCategory"></select>
+        </label>
+
+        <div class="field">
+          <span class="field-label" data-i18n="fieldType">Tipo</span>
+          <div class="segmented" id="typeSelect" role="radiogroup" aria-label="Tipo"></div>
+        </div>
+
+        <div class="field-pair" id="quantityFields" hidden>
+          <label class="field">
+            <span class="field-label" data-i18n="fieldTarget">Meta diaria</span>
+            <input type="number" id="fTarget" min="1" step="1" value="1" inputmode="numeric">
+          </label>
+          <label class="field">
+            <span class="field-label" data-i18n="fieldUnit">Unidad</span>
+            <input type="text" id="fUnit" maxlength="16" data-i18n-placeholder="fieldUnitPlaceholder">
+          </label>
+        </div>
+
+        <div class="field">
+          <span class="field-label" data-i18n="fieldSchedule">Frecuencia</span>
+          <div class="segmented" id="scheduleSelect" role="radiogroup" aria-label="Frecuencia"></div>
+        </div>
+
+        <div class="field" id="daysField" hidden>
+          <span class="field-label" data-i18n="fieldDays">Días</span>
+          <div class="dow-row" id="dowRow"></div>
+        </div>
+
+        <label class="field" id="timesField" hidden>
+          <span class="field-label" data-i18n="fieldTimesPerWeek">Veces por semana</span>
+          <input type="number" id="fTimes" min="1" max="7" step="1" value="3" inputmode="numeric">
+        </label>
+
+        <p class="form-error" id="formError" hidden role="alert"></p>
+      </div>
+
+      <footer class="sheet-foot">
+        <button type="button" class="btn btn-danger ghost" id="btnDeleteHabit" hidden data-i18n="delete">Eliminar</button>
+        <span class="spacer"></span>
+        <button type="button" class="btn" data-close data-i18n="cancel">Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="btnSaveHabit" data-i18n="save">Guardar</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <dialog class="sheet confirm" id="confirmDialog" aria-labelledby="confirmTitle">
+    <div class="sheet-body">
+      <h2 id="confirmTitle"></h2>
+      <p id="confirmBody" class="muted"></p>
+    </div>
+    <footer class="sheet-foot">
+      <span class="spacer"></span>
+      <button type="button" class="btn" id="confirmCancel" data-i18n="cancel">Cancelar</button>
+      <button type="button" class="btn btn-danger" id="confirmOk" data-i18n="confirm">Confirmar</button>
+    </footer>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+  <!-- Icon sprite -->
+  <svg style="display:none" aria-hidden="true">
+    <symbol id="i-today" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="4.5" width="18" height="16" rx="3"/><path d="M8 2.5v4M16 2.5v4M3 9.5h18"/><path d="m8.5 14.5 2.2 2.2 4.3-4.4"/>
+    </symbol>
+    <symbol id="i-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.5"/><circle cx="4.5" cy="12" r="1.5"/><circle cx="4.5" cy="18" r="1.5"/>
+    </symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 19.5V5"/><path d="M4 19.5h16"/><path d="M7.5 16v-4M12 16V7.5M16.5 16v-6"/>
+    </symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3.2"/><path d="M19.4 14.5a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5v.2a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1h.2a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/>
+    </symbol>
+    <symbol id="i-theme" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20.5 14.2A8.5 8.5 0 1 1 9.8 3.5a6.8 6.8 0 0 0 10.7 10.7z"/>
+    </symbol>
+    <symbol id="i-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+      <path d="M6 6l12 12M18 6 6 18"/>
+    </symbol>
+    <symbol id="i-flame" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12.7 2.1c.2 2.4-.8 3.7-2 4.9-1.3 1.4-2.8 2.8-2.8 5.6a6.1 6.1 0 0 0 12.2 0c0-3.6-2.4-5.6-4-7.4-.3 1-.9 1.7-1.7 2.2.3-2-.3-3.9-1.7-5.3zM12 13c1.2.9 1.9 1.9 1.9 3a1.9 1.9 0 1 1-3.8 0c0-1.1.7-2.1 1.9-3z"/>
+    </symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/>
+    </symbol>
+    <symbol id="i-archive" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="4" width="18" height="4" rx="1.2"/><path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8M10 12h4"/>
+    </symbol>
+    <symbol id="i-restore" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 10a8 8 0 1 1 1.2 5"/><path d="M4 4.5V10h5.5"/>
+    </symbol>
+  </svg>
+
+  <script src="i18n.js"></script>
+  <script src="charts.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

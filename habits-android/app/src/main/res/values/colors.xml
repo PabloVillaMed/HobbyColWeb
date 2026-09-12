@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <!-- Matches the web app's light surface, so the launch window does not flash
+       a different colour before the page paints. -->
+  <color name="window_bg">#F4F5F7</color>
+  <color name="icon_bg">#12233A</color>
+</resources>

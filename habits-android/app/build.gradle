@@ -1,0 +1,68 @@
+plugins {
+  id 'com.android.application'
+}
+
+/* The web app in ../habits is the single source of truth. It is copied into the
+   APK's assets at build time so the two can never drift apart. */
+def webAppDir = file("$rootDir/../habits")
+def generatedAssets = file("$buildDir/generated/webAssets")
+
+tasks.register('copyWebApp', Copy) {
+  from(webAppDir) {
+    exclude 'README.md'
+    exclude '**/.*'
+  }
+  into "$generatedAssets/www"
+}
+
+android {
+  namespace 'com.pablo.habitos'
+  compileSdk 32
+
+  defaultConfig {
+    applicationId 'com.pablo.habitos'
+    minSdk 24
+    targetSdk 32
+    versionCode 1
+    versionName '1.0'
+  }
+
+  sourceSets {
+    main {
+      assets.srcDirs += generatedAssets
+    }
+  }
+
+  signingConfigs {
+    release {
+      def props = new Properties()
+      def propsFile = file("$rootDir/keystore/keystore.properties")
+      if (propsFile.exists()) {
+        propsFile.withInputStream { props.load(it) }
+        storeFile file("$rootDir/keystore/${props.getProperty('storeFile')}")
+        storePassword props.getProperty('storePassword')
+        keyAlias props.getProperty('keyAlias')
+        keyPassword props.getProperty('keyPassword')
+      }
+    }
+  }
+
+  buildTypes {
+    release {
+      minifyEnabled false
+      signingConfig signingConfigs.release
+    }
+  }
+
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_11
+    targetCompatibility JavaVersion.VERSION_11
+  }
+}
+
+/* Hanging the copy off preBuild makes it an implicit dependency of every task
+   that later reads the generated assets — including lint, which otherwise warns
+   that it consumes the directory without declaring it. */
+tasks.named('preBuild') {
+  dependsOn 'copyWebApp'
+}
