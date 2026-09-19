@@ -19,6 +19,28 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <!-- Launch screen. The mark draws itself, then a phrase lands under it.
+       Removed from the DOM once it has played, so it costs nothing after. -->
+  <div class="splash" id="splash">
+    <div class="splash-inner">
+      <svg class="splash-mark" viewBox="0 0 120 120" aria-hidden="true">
+        <defs>
+          <linearGradient id="splashGrad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#2E7BE0" />
+            <stop offset="100%" stop-color="#16A97B" />
+          </linearGradient>
+        </defs>
+        <rect class="splash-tile" x="6" y="6" width="108" height="108" rx="32"
+              fill="url(#splashGrad)" />
+        <path class="splash-check" d="M37 61 L53 77 L85 43"
+              fill="none" stroke="#FFFFFF" stroke-width="9"
+              stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      <p class="splash-name">GlowApp</p>
+      <p class="splash-phrase" id="splashPhrase"></p>
+    </div>
+  </div>
+
   <a class="skip-link" href="#main" data-i18n="skipToContent">Ir al contenido</a>
 
   <header class="app-bar">
@@ -221,6 +243,13 @@
             <div class="segmented" id="sizeSelect" role="radiogroup" aria-label="Tamaño"></div>
           </div>
           <div class="setting-row">
+            <label for="soundToggle" data-i18n="setSound">Sonidos</label>
+            <label class="switch-inline">
+              <input type="checkbox" id="soundToggle" checked>
+              <span id="soundState"></span>
+            </label>
+          </div>
+          <div class="setting-row">
             <label for="weekStart" data-i18n="setWeekStart">La semana empieza el</label>
             <select id="weekStart">
               <option value="1" data-i18n="dowMon">Lunes</option>
@@ -407,6 +436,7 @@
     </symbol>
   </svg>
 
+  <script src="sounds.js"></script>
   <script src="i18n.js"></script>
   <script src="charts.js"></script>
   <script src="app.js"></script>

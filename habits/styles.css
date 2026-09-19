@@ -233,11 +233,22 @@ summary:focus-visible,
 .button-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 
 /* ── Day strip ── */
+/* Horizontally scrollable so earlier weeks stay reachable. Sized so roughly a
+   week fills the width at the default size, which keeps the familiar look. */
 .day-strip {
-  display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;
-  gap: 6px;
+  display: flex; gap: 6px;
+  overflow-x: auto; overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  margin: 0 -1rem;            /* bleed to the screen edges */
+  padding: 0 1rem 2px;
 }
+.day-strip::-webkit-scrollbar { display: none; }
 .day-chip {
+  flex: 0 0 auto;
+  width: calc((100% - 6 * 6px) / 7);
+  min-width: 2.6rem;
+  scroll-snap-align: center;
   display: flex; flex-direction: column; align-items: center; gap: 3px;
   padding: 0.5rem 0.125rem; border-radius: var(--radius);
   border: 1px solid transparent; background: var(--surface);
@@ -246,6 +257,8 @@ summary:focus-visible,
 .day-chip .dnum { font-size: 0.95rem; font-weight: 700; color: var(--ink); }
 .day-chip .ddot { width: 5px; height: 5px; border-radius: 50%; background: var(--border-strong); }
 .day-chip .ddot.filled { background: var(--good); }
+/* A quiet marker where a new month begins, for long scrolls back. */
+.day-chip.is-month-start { box-shadow: inset 2px 0 0 var(--border-strong); }
 .day-chip[aria-selected='true'] { border-color: var(--accent); background: var(--accent-soft); }
 .day-chip[disabled] { opacity: 0.38; }
 
@@ -561,6 +574,58 @@ td { font-variant-numeric: tabular-nums; }
   box-shadow: var(--shadow); animation: toast-in 0.18s ease;
 }
 @keyframes toast-in { from { opacity: 0; transform: translate(-50%, 8px); } }
+
+/* ══ Launch screen ══════════════════════════════════════════════════
+   Quick by design: the mark springs in, the check draws itself, the phrase
+   lands, and the whole thing is gone in well under two seconds. Uses the
+   same palette as the app so the handover is invisible. */
+.splash {
+  position: fixed; inset: 0; z-index: 999;
+  display: grid; place-items: center;
+  background: var(--bg);
+  transition: opacity 0.32s ease;
+}
+.splash.is-leaving { opacity: 0; pointer-events: none; }
+
+.splash-inner { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+
+.splash-mark {
+  width: 96px; height: 96px;
+  animation: splash-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  filter: drop-shadow(0 10px 24px rgba(22, 169, 123, 0.28));
+}
+@keyframes splash-pop {
+  0%   { transform: scale(0.55) rotate(-8deg); opacity: 0; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+/* The check is drawn on rather than simply appearing. */
+.splash-check {
+  stroke-dasharray: 78;
+  stroke-dashoffset: 78;
+  animation: splash-draw 0.42s ease-out 0.26s both;
+}
+@keyframes splash-draw { to { stroke-dashoffset: 0; } }
+
+.splash-name {
+  font-size: 1.35rem; font-weight: 700; letter-spacing: -0.02em; color: var(--ink);
+  animation: splash-rise 0.42s ease-out 0.34s both;
+}
+.splash-phrase {
+  max-width: 20rem; padding: 0 1.5rem; text-align: center;
+  font-size: 0.92rem; line-height: 1.45; color: var(--ink-2);
+  animation: splash-rise 0.46s ease-out 0.6s both;
+}
+@keyframes splash-rise {
+  from { opacity: 0; transform: translateY(9px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Reduced motion keeps the screen but drops the movement. */
+@media (prefers-reduced-motion: reduce) {
+  .splash-mark, .splash-name, .splash-phrase { animation: none; opacity: 1; }
+  .splash-check { stroke-dashoffset: 0; animation: none; }
+}
 
 /* ── Settings rows that need a full-width control ── */
 .setting-row-stack { flex-direction: column; align-items: stretch; gap: 8px; }

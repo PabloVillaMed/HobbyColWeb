@@ -48,7 +48,58 @@ final class GlowStore {
    * immediately. The real store is only updated when the app next opens, which
    * is why the queued action below is what actually counts.
    */
-  static void toggleInSnapshot(Context context, String habitId) {
+  /**
+   * Which change a widget tap should make to a habit.
+   *
+   * A counted habit (8 glasses of water) adds one unit per tap rather than
+   * jumping straight to complete — tapping it should feel like drinking a
+   * glass, not like declaring the whole day done. Yes/no habits still toggle.
+   * Returns the action name to queue, or null if the tap changes nothing.
+   */
+  static String applyTap(Context context, String habitId) {
+    final JSONObject snapshot = readSnapshot(context);
+    if (snapshot == null) return null;
+    String action = null;
+    try {
+      final JSONArray habits = snapshot.optJSONArray("habits");
+      if (habits == null) return null;
+
+      for (int i = 0; i < habits.length(); i++) {
+        final JSONObject habit = habits.getJSONObject(i);
+        if (!habitId.equals(habit.optString("id"))) continue;
+
+        final int target = Math.max(1, habit.optInt("target", 1));
+        if ("quantity".equals(habit.optString("type"))) {
+          final int value = habit.optInt("value");
+          if (value >= target) break;          // already full; the app undoes it
+          habit.put("value", value + 1);
+          habit.put("done", value + 1 >= target);
+          action = "increment";
+        } else {
+          final boolean next = !habit.optBoolean("done");
+          habit.put("done", next);
+          habit.put("value", next ? target : 0);
+          action = "toggle";
+        }
+        break;
+      }
+      if (action == null) return null;
+
+      int done = 0;
+      for (int i = 0; i < habits.length(); i++) {
+        if (habits.getJSONObject(i).optBoolean("done")) done++;
+      }
+      snapshot.put("done", done);
+      writeSnapshot(context, snapshot.toString());
+    } catch (JSONException ignored) {
+      // A malformed snapshot is replaced on the app's next sync.
+      return null;
+    }
+    return action;
+  }
+
+  /** Marks a habit complete outright, which is what a reminder's action means. */
+  static void completeInSnapshot(Context context, String habitId) {
     final JSONObject snapshot = readSnapshot(context);
     if (snapshot == null) return;
     try {
@@ -60,7 +111,7 @@ final class GlowStore {
         if (habitId.equals(habit.optString("id"))) {
           final boolean next = !habit.optBoolean("done");
           habit.put("done", next);
-          habit.put("value", next ? habit.optInt("target", 1) : 0);
+          habit.put("value", next ? Math.max(1, habit.optInt("target", 1)) : 0);
         }
         if (habits.getJSONObject(i).optBoolean("done")) done++;
       }

@@ -27,7 +27,7 @@ public class ReminderReceiver extends BroadcastReceiver {
 
     if (ACTION_MARK_DONE.equals(action)) {
       GlowStore.queueAction(context, habitId, GlowStore.todayDate(context), "toggle");
-      GlowStore.toggleInSnapshot(context, habitId);
+      GlowStore.completeInSnapshot(context, habitId);
       GlowWidgetProvider.refresh(context);
       manager(context).cancel(habitId.hashCode());
       return;

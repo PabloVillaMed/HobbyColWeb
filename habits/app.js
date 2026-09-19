@@ -94,6 +94,7 @@
     weekStart: 1,
     layout: 'comfortable',
     density: 'default',
+    sound: true,
     habits: [],
     entries: {},
     moods: {},
@@ -320,10 +321,15 @@
   }
 
   /* ── Today view ────────────────────────────────────────────────────── */
+  /* How far back the strip reaches. Deliberately generous: scrolling to an
+     older day should never hit a wall mid-gesture. */
+  const DAY_STRIP_DAYS = 120;
+
   function renderDayStrip() {
     const strip = $('#dayStrip');
+    const previousScroll = strip.scrollLeft;
     strip.innerHTML = '';
-    lastNDays(7).forEach((key) => {
+    lastNDays(DAY_STRIP_DAYS).forEach((key) => {
       const date = parseKey(key);
       const chip = button('day-chip', null, {
         role: 'tab',
@@ -338,6 +344,13 @@
       const dot = document.createElement('span');
       const stats = dayStats(key);
       dot.className = 'ddot' + (stats.due > 0 && stats.done === stats.due ? ' filled' : '');
+      // A month label on the first of the month makes long scrolls legible.
+      const date2 = parseKey(key);
+      if (date2.getDate() === 1) {
+        chip.classList.add('is-month-start');
+        chip.title = fmtDate(key, { month: 'long', year: 'numeric' });
+      }
+
       chip.append(dow, num, dot);
       chip.addEventListener('click', () => {
         selectedDate = key;
@@ -345,6 +358,19 @@
       });
       strip.appendChild(chip);
     });
+
+    /* Today sits at the end of the strip, so the first paint has to scroll
+       there. Later re-renders keep wherever the user had scrolled to, rather
+       than yanking the strip back under their finger. */
+    if (previousScroll > 0) {
+      strip.scrollLeft = previousScroll;
+    } else {
+      const selected = strip.querySelector('[data-date="' + selectedDate + '"]');
+      if (selected) {
+        strip.scrollLeft = Math.max(
+          0, selected.offsetLeft - (strip.clientWidth - selected.clientWidth) / 2);
+      }
+    }
   }
 
   function renderSummary() {
@@ -386,6 +412,7 @@
         if (current && current.score === score) delete state.moods[selectedDate];
         else state.moods[selectedDate] = Object.assign({ energy: 3, note: '' }, current, { score: score });
         save();
+        Sounds.play('mood');
         renderMood();
         renderProgressIfVisible();
       });
@@ -436,7 +463,8 @@
     if (!nowComplete || wasComplete) return;   // only on the transition to done
 
     buzz(15);
-    const row = $$('#habitList .habit-row').find(
+    Sounds.play('complete');
+    const row = $('#habitList .habit-row').find(
       (node) => node.dataset.habitId === habit.id
     );
     if (row && !reducedMotion.matches) {
@@ -448,6 +476,7 @@
     const stats = dayStats(selectedDate);
     if (stats.due > 0 && stats.done === stats.due) {
       buzz([0, 18, 60, 28]);
+      Sounds.play('celebrate');
       const ring = $('.summary-ring');
       if (ring && !reducedMotion.matches) {
         ring.classList.add('celebrate');
@@ -457,9 +486,21 @@
     }
   }
 
+  /* Water gets an actual drop; everything else counted gets a softer tick.
+     Matching the sound to the habit is the whole charm of this. */
+  const WATERY = /agua|water|hidrat|drink|bebe|vaso|glass/i;
+  const soundForIncrement = (habit) =>
+    WATERY.test(habit.name + ' ' + (habit.unit || '')) || habit.emoji === '💧' ? 'drop' : 'tick';
+
   function bump(habit, delta) {
     const wasComplete = isComplete(habit, selectedDate);
-    setValue(habit, selectedDate, valueOf(habit, selectedDate) + delta);
+    const before = valueOf(habit, selectedDate);
+    setValue(habit, selectedDate, before + delta);
+    const after = valueOf(habit, selectedDate);
+
+    if (after !== before) {
+      Sounds.play(delta > 0 ? soundForIncrement(habit) : 'undo');
+    }
     renderToday();
     celebrate(habit, wasComplete);
     renderProgressIfVisible();
@@ -494,6 +535,7 @@
     });
     check.addEventListener('click', () => {
       setValue(habit, selectedDate, complete ? 0 : 1);
+      if (complete) Sounds.play('uncomplete');   // celebrate() sounds the other way
       renderToday();
       celebrate(habit, complete);
       renderProgressIfVisible();
@@ -710,6 +752,7 @@
     row.addEventListener('pointerup', endDrag);
     row.addEventListener('pointercancel', endDrag);
     buzz(8);
+    Sounds.play('lift');
   }
 
   function onDragMove(evt) {
@@ -1212,6 +1255,14 @@
   /* ── Theme & language ──────────────────────────────────────────────── */
   const systemDark = window.matchMedia('(prefers-color-scheme: dark)');
 
+  function applySound() {
+    Sounds.setEnabled(state.sound !== false);
+    const box = $('#soundToggle');
+    if (box) box.checked = state.sound !== false;
+    const label = $('#soundState');
+    if (label) label.textContent = t(state.sound !== false ? 'soundOn' : 'soundOff');
+  }
+
   function applyTheme() {
     const resolved = state.theme === 'system' ? (systemDark.matches ? 'dark' : 'light') : state.theme;
     document.documentElement.setAttribute('data-theme', resolved);
@@ -1242,6 +1293,7 @@
     $('#langToggleLabel').textContent = state.lang === 'es' ? 'EN' : 'ES';
     $('#langSelect').value = state.lang;
     $('#weekStart').value = String(state.weekStart);
+    applySound();                     // its label is translated
     fillCategorySelect();
     buildLayoutPickers();
     updateViewTitle();
@@ -1535,6 +1587,12 @@
       applyTheme();
       renderProgressIfVisible();
     });
+    $('#soundToggle').addEventListener('change', (evt) => {
+      state.sound = evt.target.checked;
+      save();
+      applySound();
+      if (state.sound) Sounds.play('tick');   // let them hear what they just turned on
+    });
     $('#weekStart').addEventListener('change', (evt) => {
       state.weekStart = Number(evt.target.value);
       save();
@@ -1589,17 +1647,69 @@
     });
   }
 
+  /* ── Launch screen ─────────────────────────────────────────────────────
+     Plays once per app start, then leaves the DOM entirely. Tapping skips it,
+     because nobody wants to sit through a splash they have seen a hundred
+     times. */
+  const PHRASE_KEY = 'glow.lastPhrase';
+  const SPLASH_HOLD = 1750;
+
+  function pickPhrase() {
+    const phrases = t('phrases');
+    if (!Array.isArray(phrases) || !phrases.length) return '';
+    if (phrases.length === 1) return phrases[0];
+
+    // Never the same phrase twice in a row.
+    let previous = -1;
+    try {
+      previous = parseInt(localStorage.getItem(PHRASE_KEY), 10);
+    } catch (err) { /* storage may be unavailable */ }
+
+    let index = Math.floor(Math.random() * phrases.length);
+    if (index === previous) index = (index + 1) % phrases.length;
+
+    try {
+      localStorage.setItem(PHRASE_KEY, String(index));
+    } catch (err) { /* not worth failing the launch over */ }
+    return phrases[index];
+  }
+
+  function runSplash() {
+    const splash = $('#splash');
+    if (!splash) return;
+
+    $('#splashPhrase').textContent = pickPhrase();
+
+    let dismissed = false;
+    const dismiss = () => {
+      if (dismissed) return;
+      dismissed = true;
+      splash.classList.add('is-leaving');
+      splash.addEventListener('transitionend', () => splash.remove(), { once: true });
+      // Belt and braces: a missed transitionend must not leave it on screen.
+      setTimeout(() => splash.remove(), 600);
+    };
+
+    splash.addEventListener('click', dismiss);
+    setTimeout(dismiss, SPLASH_HOLD);
+  }
+
   /* ── Boot ──────────────────────────────────────────────────────────── */
   function init() {
     load();
     wire();
     applyTheme();
+    applySound();
     applyLayout();
     applyPendingFromShell();   // ticks made from the widget while the app was closed
     applyLang();
     syncToShell();
     setView(location.hash.slice(1) || 'today', true);
     updateInstallUi();
+    runSplash();
+
+    // Audio stays suspended until a gesture; the first tap anywhere frees it.
+    document.addEventListener('pointerdown', () => Sounds.unlock(), { once: true });
 
     window.addEventListener('hashchange', () => setView(location.hash.slice(1) || 'today', true));
 

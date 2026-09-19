@@ -60,7 +60,9 @@ public class GlowWidgetService extends RemoteViewsService {
       row.setTextViewText(R.id.row_emoji, habit.optString("emoji", "\u2705"));
       row.setTextViewText(R.id.row_name, habit.optString("name", ""));
       row.setTextViewText(R.id.row_progress, progress);
-      row.setTextViewText(R.id.row_check, done ? "\u2713" : "\u25CB");
+      // A counted habit shows "+" because a tap adds one unit, not the whole day.
+      final boolean counted = "quantity".equals(habit.optString("type"));
+      row.setTextViewText(R.id.row_check, done ? "\u2713" : (counted ? "+" : "\u25CB"));
       row.setInt(R.id.row_check, "setTextColor",
           context.getColor(done ? R.color.widget_done : R.color.widget_muted));
       row.setInt(R.id.row_name, "setTextColor",

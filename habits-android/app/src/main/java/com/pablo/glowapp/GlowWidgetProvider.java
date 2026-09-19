@@ -34,9 +34,11 @@ public class GlowWidgetProvider extends AppWidgetProvider {
     if (ACTION_TOGGLE.equals(intent.getAction())) {
       final String habitId = intent.getStringExtra(EXTRA_HABIT_ID);
       if (habitId != null) {
-        GlowStore.queueAction(context, habitId, GlowStore.todayDate(context), "toggle");
-        GlowStore.toggleInSnapshot(context, habitId);
-        refresh(context);
+        final String action = GlowStore.applyTap(context, habitId);
+        if (action != null) {
+          GlowStore.queueAction(context, habitId, GlowStore.todayDate(context), action);
+          refresh(context);
+        }
       }
       return;
     }

@@ -8,6 +8,27 @@
     es: {
       appName: 'GlowApp',
       skipToContent: 'Ir al contenido',
+      /* Launch phrases. Short, plain, and about showing up rather than
+         winning — a habit tracker should not shout at you. */
+      phrases: [
+        'Lo pequeño, repetido, se vuelve enorme.',
+        'Hoy solo tienes que empezar.',
+        'Un día a la vez. Hoy es ese día.',
+        'La constancia gana a la intensidad.',
+        'No tiene que ser perfecto, tiene que ser hoy.',
+        'Cada marca cuenta una historia.',
+        'Vuelve siempre, aunque falles.',
+        'Dos minutos ya son un comienzo.',
+        'Tu yo de mañana te lo agradece.',
+        'El progreso es silencioso, pero existe.',
+        'Hazlo pequeño y hazlo posible.',
+        'Nadie construye un hábito en un día.',
+        'Avanzar despacio sigue siendo avanzar.',
+        'Empieza donde estás, con lo que tienes.',
+        'La disciplina también es cuidarse.',
+        'Un paso más cerca de quien quieres ser.',
+      ],
+
 
       navToday: 'Hoy',
       navHabits: 'Hábitos',
@@ -142,6 +163,9 @@
       sizeSmall: 'Pequeño',
       sizeDefault: 'Normal',
       sizeLarge: 'Grande',
+      setSound: 'Sonidos',
+      soundOn: 'Activados',
+      soundOff: 'Silenciado',
       setWeekStart: 'La semana empieza el',
       /* Reminders (only shown inside the Android app) */
       fieldReminder: 'Recordatorio',
@@ -173,7 +197,7 @@
       installHintInstalled: 'Ya está instalada. Se abre sin conexión.',
       installHintIOS: 'En iPhone: toca Compartir y luego «Añadir a pantalla de inicio».',
       installHintOther: 'Tu navegador instala apps desde su propio menú (busca «Instalar» o «Añadir a pantalla de inicio»).',
-      version: 'GlowApp v2.0 · sin conexión',
+      version: 'GlowApp v2.1 · sin conexión',
       storageFmt: (n) => n + ' días con registro guardados en este dispositivo.',
       updateReady: 'Hay una versión nueva.',
       reload: 'Actualizar',
@@ -195,6 +219,27 @@
     en: {
       appName: 'GlowApp',
       skipToContent: 'Skip to content',
+      /* Launch phrases. Short, plain, and about showing up rather than
+         winning — a habit tracker should not shout at you. */
+      phrases: [
+        'Small things, repeated, become big ones.',
+        'Today you only have to start.',
+        'One day at a time. Today is that day.',
+        'Consistency beats intensity.',
+        'It need not be perfect, it needs to be today.',
+        'Every mark tells a story.',
+        'Always come back, even after a miss.',
+        'Two minutes is already a beginning.',
+        'Tomorrow you will be glad you did.',
+        'Progress is quiet, but it is real.',
+        'Make it small and make it possible.',
+        'Nobody builds a habit in a day.',
+        'Going slowly is still going.',
+        'Start where you are, with what you have.',
+        'Discipline is a form of self-care.',
+        'One step closer to who you want to be.',
+      ],
+
 
       navToday: 'Today',
       navHabits: 'Habits',
@@ -322,6 +367,9 @@
       sizeSmall: 'Small',
       sizeDefault: 'Default',
       sizeLarge: 'Large',
+      setSound: 'Sounds',
+      soundOn: 'On',
+      soundOff: 'Muted',
       setWeekStart: 'Week starts on',
       /* Reminders (only shown inside the Android app) */
       fieldReminder: 'Reminder',
@@ -353,7 +401,7 @@
       installHintInstalled: 'Already installed. It opens offline.',
       installHintIOS: 'On iPhone: tap Share, then "Add to Home Screen".',
       installHintOther: 'Your browser installs apps from its own menu (look for "Install" or "Add to Home Screen").',
-      version: 'GlowApp v2.0 · offline',
+      version: 'GlowApp v2.1 · offline',
       storageFmt: (n) => n + ' logged days stored on this device.',
       updateReady: 'A new version is ready.',
       reload: 'Update',
