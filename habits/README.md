@@ -58,6 +58,22 @@ phone and your laptop. **Ajustes → Exportar JSON** writes a full backup, and
 *Importar JSON* restores one — the same file moves your history to another
 device.
 
+## A note on updating
+
+Asset URLs carry a `?v=` query (`styles.css?v=2.2`). **Bump it in
+`index.html` and `sw.js` together whenever a shell file changes**, along with
+`CACHE` in `sw.js`.
+
+This is not decoration. The worker serves assets stale-while-revalidate, so
+without a version change a newly deployed `index.html` is paired with the
+previously cached stylesheet on the first load after an update — which is
+exactly how a release once shipped with an unstyled, enormous splash logo. A
+versioned URL is simply absent from the old cache, so it is always fetched
+fresh.
+
+The Android shell sidesteps this entirely: it registers no worker at all,
+because every asset already comes from the APK.
+
 ## Files
 
 | File | What it holds |

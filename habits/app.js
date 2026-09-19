@@ -1678,7 +1678,9 @@
     const splash = $('#splash');
     if (!splash) return;
 
-    $('#splashPhrase').textContent = pickPhrase();
+    // index.html already chose one at first paint; only fill a gap.
+    const phraseSlot = $('#splashPhrase');
+    if (phraseSlot && !phraseSlot.textContent.trim()) phraseSlot.textContent = pickPhrase();
 
     let dismissed = false;
     const dismiss = () => {
@@ -1713,11 +1715,24 @@
 
     window.addEventListener('hashchange', () => setView(location.hash.slice(1) || 'today', true));
 
-    if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js').catch((err) => console.warn('SW failed', err));
-      });
+    if (!('serviceWorker' in navigator) || location.protocol === 'file:') return;
+
+    if (shell) {
+      /* The APK serves every asset from its own package, so a worker adds no
+         offline ability here — only the risk of answering with a stale copy
+         after an app update. Retire any left by an earlier version. */
+      navigator.serviceWorker.getRegistrations()
+        .then((regs) => regs.forEach((reg) => reg.unregister()))
+        .catch(() => {});
+      if (window.caches && caches.keys) {
+        caches.keys().then((keys) => keys.forEach((key) => caches.delete(key))).catch(() => {});
+      }
+      return;
     }
+
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch((err) => console.warn('SW failed', err));
+    });
   }
 
   init();

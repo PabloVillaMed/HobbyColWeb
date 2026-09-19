@@ -1,15 +1,17 @@
 /* GlowApp service worker — precaches the shell so the app opens offline.
    Bump CACHE when any shell file changes; the old cache is dropped on
    activate. */
-const CACHE = 'glow-v3';
+/* Bump together with the ?v= query in index.html: the two must agree or the
+   precache stores URLs the page never asks for. */
+const CACHE = 'glow-v4';
 
 const SHELL = [
   './index.html',
-  './styles.css',
-  './sounds.js',
-  './i18n.js',
-  './charts.js',
-  './app.js',
+  './styles.css?v=2.2',
+  './sounds.js?v=2.2',
+  './i18n.js?v=2.2',
+  './charts.js?v=2.2',
+  './app.js?v=2.2',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',
