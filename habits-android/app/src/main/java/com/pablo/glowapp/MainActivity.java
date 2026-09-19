@@ -1,7 +1,9 @@
-package com.pablo.habitos;
+package com.pablo.glowapp;
 
 import android.annotation.SuppressLint;
+import android.Manifest;
 import android.app.Activity;
+import android.content.pm.PackageManager;
 import android.content.Intent;
 import android.graphics.Insets;
 import android.net.Uri;
@@ -66,6 +68,12 @@ public class MainActivity extends Activity {
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
 
+    // Debuggable builds expose the page to Chrome DevTools; release builds
+    // never do, so this cannot leak a user's data.
+    if ((getApplicationInfo().flags & android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
+      WebView.setWebContentsDebuggingEnabled(true);
+    }
+
     webView = new WebView(this);
     root = new FrameLayout(this);
     root.addView(webView, new FrameLayout.LayoutParams(
@@ -84,6 +92,9 @@ public class MainActivity extends Activity {
     settings.setAllowFileAccess(false);           // nothing is loaded over file://
     settings.setAllowContentAccess(false);
     settings.setCacheMode(WebSettings.LOAD_DEFAULT);
+    // The page has its own Size setting, so Android's font slider must not
+    // scale it a second time on top.
+    settings.setTextZoom(100);
 
     CookieManager.getInstance().setAcceptCookie(false);
 
@@ -155,8 +166,34 @@ public class MainActivity extends Activity {
     });
   }
 
-  /** Lets the page keep the letterboxed bar areas in sync with its own theme. */
+  /** The page's window onto the native shell: theme, snapshot and tick queue. */
   private class ShellBridge {
+
+    /** Called after every save so the widget and alarms have current data. */
+    @JavascriptInterface
+    public void syncState(String json) {
+      if (json == null) return;
+      GlowStore.writeSnapshot(MainActivity.this, json);
+      GlowWidgetProvider.refresh(MainActivity.this);
+      ReminderScheduler.rescheduleAll(MainActivity.this);
+    }
+
+    /** Asked for the first time the user sets a reminder, not at launch. */
+    @JavascriptInterface
+    public void requestNotificationPermission() {
+      if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return;
+      if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
+          == PackageManager.PERMISSION_GRANTED) return;
+      runOnUiThread(() ->
+          requestPermissions(new String[] { Manifest.permission.POST_NOTIFICATIONS }, 1));
+    }
+
+    /** Hands over ticks made from the widget or a notification, and clears them. */
+    @JavascriptInterface
+    public String takePending() {
+      return GlowStore.takePending(MainActivity.this);
+    }
+
     @JavascriptInterface
     public void setBackgroundColor(final String css) {
       if (css == null) return;
@@ -209,6 +246,15 @@ public class MainActivity extends Activity {
     if (path.endsWith(".png")) return "image/png";
     if (path.endsWith(".svg")) return "image/svg+xml";
     return "application/octet-stream";
+  }
+
+  @Override
+  protected void onResume() {
+    super.onResume();
+    if (webView != null) {
+      webView.evaluateJavascript(
+          "window.__glow && window.__glow.applyPending && window.__glow.applyPending()", null);
+    }
   }
 
   @Override

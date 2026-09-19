@@ -2,8 +2,11 @@
 <html lang="es" data-theme="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Hábitos</title>
+  <!-- Zoom is deliberately off: the Size setting in Ajustes is the one way to
+       change how large things are, so gestures cannot leave the app in a state
+       the layout was never designed for. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>GlowApp</title>
   <meta name="description" content="Seguimiento de hábitos, ejercicio y estado de ánimo, sin conexión y sin cuentas.">
   <meta name="theme-color" content="#0D1117">
   <link rel="manifest" href="manifest.webmanifest">
@@ -12,7 +15,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Hábitos">
+  <meta name="apple-mobile-web-app-title" content="GlowApp">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -209,6 +212,14 @@
               <option value="light" data-i18n="themeLight">Claro</option>
             </select>
           </div>
+          <div class="setting-row setting-row-stack">
+            <label for="layoutSelect" data-i18n="setLayout">Diseño de Hoy</label>
+            <div class="segmented segmented-wrap" id="layoutSelect" role="radiogroup" aria-label="Diseño"></div>
+          </div>
+          <div class="setting-row setting-row-stack">
+            <label for="sizeSelect" data-i18n="setSize">Tamaño</label>
+            <div class="segmented" id="sizeSelect" role="radiogroup" aria-label="Tamaño"></div>
+          </div>
           <div class="setting-row">
             <label for="weekStart" data-i18n="setWeekStart">La semana empieza el</label>
             <select id="weekStart">
@@ -323,6 +334,14 @@
           <input type="number" id="fTimes" min="1" max="7" step="1" value="3" inputmode="numeric">
         </label>
 
+        <!-- Reminders need the Android shell to schedule an alarm, so this is
+             revealed only when the native bridge is present. -->
+        <label class="field" id="reminderField" hidden>
+          <span class="field-label" data-i18n="fieldReminder">Recordatorio</span>
+          <input type="time" id="fReminder">
+          <span class="field-hint" id="reminderHint"></span>
+        </label>
+
         <p class="form-error" id="formError" hidden role="alert"></p>
       </div>
 
@@ -377,6 +396,11 @@
     </symbol>
     <symbol id="i-archive" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
       <rect x="3" y="4" width="18" height="4" rx="1.2"/><path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8M10 12h4"/>
+    </symbol>
+    <symbol id="i-grip" viewBox="0 0 24 24" fill="currentColor">
+      <circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/>
+      <circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/>
+      <circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/>
     </symbol>
     <symbol id="i-restore" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
       <path d="M4 10a8 8 0 1 1 1.2 5"/><path d="M4 4.5V10h5.5"/>

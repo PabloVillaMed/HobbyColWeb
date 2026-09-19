@@ -1,7 +1,7 @@
-/* Hábitos service worker — precaches the shell so the app opens offline.
+/* GlowApp service worker — precaches the shell so the app opens offline.
    Bump CACHE when any shell file changes; the old cache is dropped on
    activate. */
-const CACHE = 'habitos-v1';
+const CACHE = 'glow-v2';
 
 const SHELL = [
   './index.html',

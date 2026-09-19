@@ -97,6 +97,15 @@
   --shadow: 0 8px 28px rgba(11, 11, 11, 0.10);
 }
 
+/* ── Size scale ───────────────────────────────────────────────────────
+   Text is in rem throughout, and the paddings that shape the layout are
+   too, so moving the root size rescales the whole interface in one step.
+   Tap targets stay pinned in px: Small may look tighter but must never
+   become harder to hit. This replaces pinch-zoom, which is turned off. */
+:root { font-size: 16px; }
+:root[data-density='small'] { font-size: 14px; }
+:root[data-density='large'] { font-size: 18.5px; }
+
 /* ── Reset & base ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -192,8 +201,8 @@ summary:focus-visible,
 /* ── Layout ── */
 .view-inner {
   max-width: 680px; margin: 0 auto;
-  padding: 16px 16px 28px;
-  display: flex; flex-direction: column; gap: 18px;
+  padding: 1rem 1rem 1.75rem;
+  display: flex; flex-direction: column; gap: 1.125rem;
 }
 .section-head {
   display: flex; align-items: center; justify-content: space-between;
@@ -201,7 +210,7 @@ summary:focus-visible,
 }
 .card {
   background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius-lg); padding: 16px;
+  border-radius: var(--radius-lg); padding: 1rem;
 }
 .card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
 .card-hint { color: var(--ink-3); font-size: 0.78rem; }
@@ -230,7 +239,7 @@ summary:focus-visible,
 }
 .day-chip {
   display: flex; flex-direction: column; align-items: center; gap: 3px;
-  padding: 8px 2px; border-radius: var(--radius);
+  padding: 0.5rem 0.125rem; border-radius: var(--radius);
   border: 1px solid transparent; background: var(--surface);
   color: var(--ink-2); font-size: 0.7rem; font-weight: 600;
 }
@@ -242,12 +251,13 @@ summary:focus-visible,
 
 /* ── Summary card ── */
 .summary-card {
-  display: flex; align-items: center; gap: 18px;
+  display: flex; align-items: center; gap: 1.125rem;
   background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius-lg); padding: 16px;
+  border-radius: var(--radius-lg); padding: 1rem;
 }
 .summary-ring { position: relative; flex: none; display: grid; place-items: center; }
-.summary-ring svg { transform: rotate(-90deg); }
+/* Overrides the SVG's own width/height so the ring scales with the size setting. */
+.summary-ring svg { transform: rotate(-90deg); width: 6.5rem; height: 6.5rem; }
 .ring-track { fill: none; stroke: var(--surface-3); stroke-width: 10; }
 .ring-value {
   fill: none; stroke: var(--accent); stroke-width: 10; stroke-linecap: round;
@@ -264,7 +274,7 @@ summary:focus-visible,
 .stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .stat-tile {
   background: var(--surface-3); border-radius: var(--radius);
-  padding: 9px 11px; display: flex; flex-direction: column; gap: 1px;
+  padding: 0.5625rem 0.6875rem; display: flex; flex-direction: column; gap: 1px;
 }
 .stat-value { font-size: 1.15rem; font-weight: 700; line-height: 1.15; }
 .stat-row .stat-value { font-size: 1.02rem; }
@@ -274,7 +284,7 @@ summary:focus-visible,
 .mood-scale { display: grid; grid-template-columns: repeat(5, 1fr); gap: 7px; margin-top: 12px; }
 .mood-btn {
   display: flex; flex-direction: column; align-items: center; gap: 4px;
-  padding: 10px 2px; border-radius: var(--radius);
+  padding: 0.625rem 0.125rem; border-radius: var(--radius);
   border: 1px solid var(--border); background: var(--surface-3);
   font-size: 0.62rem; font-weight: 600; color: var(--ink-2);
   transition: transform 0.12s, border-color 0.12s;
@@ -355,15 +365,15 @@ select { appearance: none; padding-right: 32px;
 .habit-list, .manage-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
 
 .habit-row {
-  display: flex; align-items: center; gap: 12px;
+  display: flex; align-items: center; gap: 0.75rem;
   background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius-lg); padding: 12px 14px;
+  border-radius: var(--radius-lg); padding: 0.75rem 0.875rem;
   transition: border-color 0.15s, opacity 0.15s;
 }
 .habit-row.is-done { border-color: color-mix(in srgb, var(--good) 45%, transparent); }
 .habit-row.is-off { opacity: 0.5; }
 .habit-badge {
-  width: 40px; height: 40px; flex: none; display: grid; place-items: center;
+  width: 2.5rem; height: 2.5rem; flex: none; display: grid; place-items: center;
   border-radius: 12px; font-size: 1.2rem;
   background: color-mix(in srgb, var(--habit-color) 20%, transparent);
   border: 1px solid color-mix(in srgb, var(--habit-color) 45%, transparent);
@@ -408,10 +418,26 @@ select { appearance: none; padding-right: 32px;
 
 /* ── Manage list ── */
 .manage-row {
-  display: flex; align-items: center; gap: 12px;
+  display: flex; align-items: center; gap: 0.75rem;
   background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius-lg); padding: 12px 14px;
+  border-radius: var(--radius-lg); padding: 0.75rem 0.875rem;
+  touch-action: pan-y;                      /* lets a vertical drag start a reorder */
+  transition: transform 0.12s, opacity 0.12s, box-shadow 0.12s;
 }
+
+/* ── Drag to reorder ── */
+.manage-row.is-dragging {
+  opacity: 0.9; box-shadow: var(--shadow); border-color: var(--accent);
+  position: relative; z-index: 5;
+}
+.manage-row.is-shifted { transform: translateY(var(--shift, 0)); }
+.drag-handle {
+  flex: none; width: 1.75rem; align-self: stretch; cursor: grab;
+  display: grid; place-items: center; color: var(--ink-3);
+  touch-action: none;                       /* the handle owns the gesture */
+}
+.drag-handle:active { cursor: grabbing; }
+.drag-handle svg { width: 16px; height: 16px; }
 .manage-actions { display: flex; align-items: center; gap: 2px; }
 .manage-actions .icon-btn { min-width: 36px; height: 36px; }
 .manage-actions svg { width: 18px; height: 18px; }
@@ -535,6 +561,105 @@ td { font-variant-numeric: tabular-nums; }
   box-shadow: var(--shadow); animation: toast-in 0.18s ease;
 }
 @keyframes toast-in { from { opacity: 0; transform: translate(-50%, 8px); } }
+
+/* ── Settings rows that need a full-width control ── */
+.setting-row-stack { flex-direction: column; align-items: stretch; gap: 8px; }
+.setting-row-stack label { color: var(--ink-2); font-size: 0.82rem; font-weight: 600; }
+.segmented-wrap { flex-wrap: wrap; }
+.segmented-wrap button { flex: 1 1 40%; }
+
+/* ══ Today layouts ══════════════════════════════════════════════════
+   Each block restyles only the Today view. Comfortable is the default
+   and needs no block of its own. */
+
+/* ── Compact: one line per habit, mood condensed ── */
+[data-layout='compact'] #view-today .view-inner { gap: 0.75rem; }
+[data-layout='compact'] .summary-card { padding: 0.75rem; gap: 0.75rem; }
+[data-layout='compact'] .summary-ring svg { width: 4.25rem; height: 4.25rem; }
+[data-layout='compact'] .summary-ring-label strong { font-size: 1.05rem; }
+[data-layout='compact'] .summary-ring-label span { display: none; }
+[data-layout='compact'] .summary-date { margin-bottom: 6px; font-size: 0.75rem; }
+[data-layout='compact'] .mood-card .card-head h3 { font-size: 0.85rem; }
+[data-layout='compact'] .mood-btn {
+  flex-direction: row; justify-content: center; gap: 0; padding: 0.4rem 0.125rem;
+}
+[data-layout='compact'] .mood-btn span:not(.emoji) { display: none; }
+[data-layout='compact'] .mood-btn .emoji { font-size: 1.25rem; }
+[data-layout='compact'] .habit-list { gap: 5px; }
+[data-layout='compact'] .habit-row { padding: 0.4rem 0.625rem; gap: 0.5rem; border-radius: var(--radius); }
+[data-layout='compact'] .habit-badge {
+  width: 1.75rem; height: 1.75rem; font-size: 0.95rem; border-radius: 9px;
+}
+[data-layout='compact'] .habit-main { flex-direction: row; align-items: center; gap: 0.5rem; }
+[data-layout='compact'] .habit-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+[data-layout='compact'] .habit-meta { flex: none; }
+[data-layout='compact'] .habit-meta .sched { display: none; }   /* schedule is implied by the day */
+[data-layout='compact'] .progress-track { display: none; }
+[data-layout='compact'] .check-btn { width: 2rem; height: 2rem; border-width: 2px; }
+[data-layout='compact'] .check-btn::after { width: 11px; height: 6px; }
+[data-layout='compact'] .qty-btn { width: 1.9rem; height: 1.9rem; }
+[data-layout='compact'] .qty-value { min-width: 3.1rem; font-size: 0.72rem; }
+
+/* ── Grid: two columns of tiles ── */
+[data-layout='grid'] .habit-list {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.625rem;
+}
+[data-layout='grid'] .habit-row {
+  flex-direction: column; align-items: center; text-align: center;
+  gap: 0.5rem; padding: 0.875rem 0.625rem;
+}
+[data-layout='grid'] .habit-badge { width: 3rem; height: 3rem; font-size: 1.5rem; }
+[data-layout='grid'] .habit-main { align-items: center; width: 100%; }
+[data-layout='grid'] .habit-name { text-align: center; }
+[data-layout='grid'] .habit-meta { justify-content: center; }
+[data-layout='grid'] .habit-meta .sched { display: none; }
+[data-layout='grid'] .qty-control { width: 100%; justify-content: center; }
+@media (min-width: 560px) {
+  [data-layout='grid'] .habit-list { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* ── Focus: one roomy card per habit, chrome tucked away ── */
+[data-layout='focus'] .summary-card { flex-direction: column; text-align: center; gap: 0.5rem; }
+[data-layout='focus'] .summary-ring svg { width: 5rem; height: 5rem; }
+[data-layout='focus'] .summary-stats { width: 100%; }
+[data-layout='focus'] .summary-date { text-align: center; }
+[data-layout='focus'] .stat-row { max-width: 320px; margin: 0 auto; }
+[data-layout='focus'] .mood-card { padding: 0.75rem 1rem; }
+[data-layout='focus'] .mood-card .card-head h3 { font-size: 0.85rem; }
+[data-layout='focus'] .mood-scale { margin-top: 8px; }
+[data-layout='focus'] .mood-btn {
+  flex-direction: row; justify-content: center; gap: 0; padding: 0.4rem 0.125rem;
+}
+[data-layout='focus'] .mood-btn span:not(.emoji) { display: none; }
+[data-layout='focus'] .habit-list { gap: 0.75rem; }
+[data-layout='focus'] .habit-row { padding: 1.25rem 1.125rem; gap: 1rem; }
+[data-layout='focus'] .habit-badge { width: 3rem; height: 3rem; font-size: 1.45rem; }
+[data-layout='focus'] .habit-name { font-size: 1.05rem; }
+[data-layout='focus'] .check-btn { width: 3rem; height: 3rem; }
+[data-layout='focus'] .check-btn::after { width: 18px; height: 11px; }
+
+/* ── Completion feedback ── */
+@keyframes check-pop {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.22); }
+  100% { transform: scale(1); }
+}
+.check-btn.just-done { animation: check-pop 0.32s ease-out; }
+
+@keyframes row-flash {
+  0% { background: var(--surface); }
+  35% { background: color-mix(in srgb, var(--good) 16%, var(--surface)); }
+  100% { background: var(--surface); }
+}
+.habit-row.just-done { animation: row-flash 0.6s ease-out; }
+
+@keyframes ring-celebrate {
+  0% { transform: rotate(-90deg) scale(1); }
+  40% { transform: rotate(-90deg) scale(1.06); }
+  100% { transform: rotate(-90deg) scale(1); }
+}
+.summary-ring.celebrate svg { animation: ring-celebrate 0.7s ease-out; }
+.summary-ring.celebrate .ring-value { stroke: var(--good); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }

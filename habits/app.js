@@ -1,4 +1,4 @@
-/* Hábitos — habit, exercise and mood tracker.
+/* GlowApp — habit, exercise and mood tracker.
    Local-first: the whole state lives in one localStorage record, so the app
    works with no network, no account and no backend. */
 (function () {
@@ -8,8 +8,16 @@
   const $ = (sel, root) => (root || document).querySelector(sel);
   const $$ = (sel, root) => Array.from((root || document).querySelectorAll(sel));
 
-  const STORAGE_KEY = 'habitos.v1';
+  const STORAGE_KEY = 'glow.v1';
+  const LEGACY_STORAGE_KEY = 'habitos.v1';   // pre-GlowApp name, migrated on load
   const SCHEMA_VERSION = 1;
+
+  /* Present only inside the Android shell; everything that depends on it is
+     feature-detected so the browser build stays fully functional. */
+  const shell = window.NativeShell || null;
+
+  const LAYOUTS = ['comfortable', 'compact', 'grid', 'focus'];
+  const DENSITIES = ['small', 'default', 'large'];
 
   const EMOJIS = [
     '🧘', '💪', '🏃', '🚶', '🚴', '🏋️', '🧠', '📓', '📖', '💧',
@@ -84,6 +92,8 @@
     lang: (navigator.language || 'es').toLowerCase().startsWith('es') ? 'es' : 'en',
     theme: 'system',
     weekStart: 1,
+    layout: 'comfortable',
+    density: 'default',
     habits: [],
     entries: {},
     moods: {},
@@ -100,7 +110,17 @@
 
   function load() {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      /* The app was called Hábitos before GlowApp. Anyone who used it in a
+         browser still has their history under the old key, so adopt it once. */
+      let raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) {
+        const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
+        if (legacy) {
+          localStorage.setItem(STORAGE_KEY, legacy);
+          localStorage.removeItem(LEGACY_STORAGE_KEY);
+          raw = legacy;
+        }
+      }
       if (!raw) return;
       const parsed = JSON.parse(raw);
       if (parsed && typeof parsed === 'object') {
@@ -124,6 +144,7 @@
         console.warn('Could not save', err);
         toast('⚠️');
       }
+      syncToShell();
     }, 120);
   }
 
@@ -397,9 +418,50 @@
       .join(' ');
   }
 
+  /* ── Completion feedback ───────────────────────────────────────────────
+     A short buzz and a flash when something is completed, and a celebration
+     when the day is finished. Silent if the browser has no vibration motor
+     or the viewer asked for reduced motion. */
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  function buzz(pattern) {
+    if (reducedMotion.matches) return;
+    try {
+      if (navigator.vibrate) navigator.vibrate(pattern);
+    } catch (err) { /* not available; the animation still plays */ }
+  }
+
+  function celebrate(habit, wasComplete) {
+    const nowComplete = isComplete(habit, selectedDate);
+    if (!nowComplete || wasComplete) return;   // only on the transition to done
+
+    buzz(15);
+    const row = $$('#habitList .habit-row').find(
+      (node) => node.dataset.habitId === habit.id
+    );
+    if (row && !reducedMotion.matches) {
+      row.classList.add('just-done');
+      const check = $('.check-btn', row);
+      if (check) check.classList.add('just-done');
+    }
+
+    const stats = dayStats(selectedDate);
+    if (stats.due > 0 && stats.done === stats.due) {
+      buzz([0, 18, 60, 28]);
+      const ring = $('.summary-ring');
+      if (ring && !reducedMotion.matches) {
+        ring.classList.add('celebrate');
+        setTimeout(() => ring.classList.remove('celebrate'), 800);
+      }
+      toast('🎉 ' + t('allDoneTitle'));
+    }
+  }
+
   function bump(habit, delta) {
+    const wasComplete = isComplete(habit, selectedDate);
     setValue(habit, selectedDate, valueOf(habit, selectedDate) + delta);
     renderToday();
+    celebrate(habit, wasComplete);
     renderProgressIfVisible();
   }
 
@@ -433,6 +495,7 @@
     check.addEventListener('click', () => {
       setValue(habit, selectedDate, complete ? 0 : 1);
       renderToday();
+      celebrate(habit, complete);
       renderProgressIfVisible();
     });
     return check;
@@ -453,6 +516,7 @@
       const complete = isComplete(habit, selectedDate);
       const li = document.createElement('li');
       li.className = 'habit-row' + (complete ? ' is-done' : '') + (scheduled ? '' : ' is-off');
+      li.dataset.habitId = habit.id;
       li.style.setProperty('--habit-color', colorVar(habit));
 
       const badge = document.createElement('span');
@@ -477,6 +541,7 @@
         meta.appendChild(flame);
       }
       const sched = document.createElement('span');
+      sched.className = 'sched';   // denser layouts hide this
       sched.textContent = scheduled ? scheduleLabel(habit) : t('notToday');
       meta.appendChild(sched);
       main.append(name, meta);
@@ -548,7 +613,18 @@
   function manageRow(habit, archived) {
     const li = document.createElement('li');
     li.className = 'manage-row';
+    li.dataset.habitId = habit.id;
     li.style.setProperty('--habit-color', colorVar(habit));
+
+    if (!archived) {
+      const handle = document.createElement('span');
+      handle.className = 'drag-handle';
+      handle.setAttribute('aria-hidden', 'true');   // arrows below are the accessible route
+      handle.title = t('dragHint');
+      handle.innerHTML = iconSvg('i-grip', 16);
+      handle.addEventListener('pointerdown', (evt) => startDrag(evt, li, habit.id));
+      li.appendChild(handle);
+    }
 
     const badge = document.createElement('span');
     badge.className = 'habit-badge';
@@ -602,6 +678,81 @@
     return li;
   }
 
+  /* ── Drag to reorder ────────────────────────────────────────────────
+     Pointer-events based so one path covers touch, pen and mouse. The row
+     follows the finger while its neighbours slide out of the way; the list
+     is only rewritten once, on release. */
+  let drag = null;
+
+  function startDrag(evt, row, habitId) {
+    if (drag || evt.button > 0) return;
+    evt.preventDefault();
+
+    const list = row.parentElement;
+    const rows = Array.from(list.children);
+    const rect = row.getBoundingClientRect();
+
+    drag = {
+      row: row,
+      habitId: habitId,
+      list: list,
+      rows: rows,
+      startY: evt.clientY,
+      from: rows.indexOf(row),
+      to: rows.indexOf(row),
+      step: rect.height + 8,          // row height plus the list gap
+      pointerId: evt.pointerId,
+    };
+
+    row.classList.add('is-dragging');
+    row.setPointerCapture(evt.pointerId);
+    row.addEventListener('pointermove', onDragMove);
+    row.addEventListener('pointerup', endDrag);
+    row.addEventListener('pointercancel', endDrag);
+    buzz(8);
+  }
+
+  function onDragMove(evt) {
+    if (!drag) return;
+    const offset = evt.clientY - drag.startY;
+    drag.row.style.transform = 'translateY(' + offset + 'px)';
+
+    const moved = Math.round(offset / drag.step);
+    const target = Math.max(0, Math.min(drag.rows.length - 1, drag.from + moved));
+    if (target === drag.to) return;
+    drag.to = target;
+
+    // Shift the rows the dragged one has passed over.
+    drag.rows.forEach((node, index) => {
+      if (node === drag.row) return;
+      let shift = 0;
+      if (drag.from < drag.to && index > drag.from && index <= drag.to) shift = -drag.step;
+      else if (drag.from > drag.to && index >= drag.to && index < drag.from) shift = drag.step;
+      node.style.setProperty('--shift', shift + 'px');
+      node.classList.toggle('is-shifted', shift !== 0);
+    });
+  }
+
+  function endDrag() {
+    if (!drag) return;
+    const { row, from, to, habitId } = drag;
+
+    row.removeEventListener('pointermove', onDragMove);
+    row.removeEventListener('pointerup', endDrag);
+    row.removeEventListener('pointercancel', endDrag);
+    row.classList.remove('is-dragging');
+    row.style.transform = '';
+    drag.rows.forEach((node) => {
+      node.classList.remove('is-shifted');
+      node.style.removeProperty('--shift');
+    });
+    drag = null;
+
+    if (from === to) return;
+    reorder(habitId, to - from);
+    toast(t('reordered'));
+  }
+
   function reorder(id, delta) {
     const list = state.habits;
     const from = list.findIndex((h) => h.id === id);
@@ -643,6 +794,7 @@
       type: 'binary',
       target: 1,
       unit: '',
+      reminder: '',
       schedule: { kind: 'daily', days: [1, 3, 5], times: 3 },
     };
   }
@@ -738,6 +890,7 @@
           type: existing.type || 'binary',
           target: existing.target || 1,
           unit: existing.unit || '',
+          reminder: existing.reminder || '',
           schedule: Object.assign({ kind: 'daily', days: [1, 3, 5], times: 3 }, existing.schedule),
         }
       : blankDraft();
@@ -752,6 +905,11 @@
     $('#formError').hidden = true;
     $('#btnDeleteHabit').hidden = !existing;
 
+    // Reminders need the shell to schedule an alarm, so hide them in a browser.
+    $('#reminderField').hidden = !shell;
+    $('#fReminder').value = draft.reminder || '';
+    $('#reminderHint').textContent = draft.reminder ? '' : t('reminderNone');
+
     buildEmojiGrid();
     buildColorRow();
     syncDialogFields();
@@ -764,6 +922,7 @@
     draft.target = parseInt($('#fTarget').value, 10) || 0;
     draft.unit = $('#fUnit').value.trim();
     draft.category = $('#fCategory').value;
+    draft.reminder = shell ? $('#fReminder').value : (draft.reminder || '');
     draft.schedule.times = Math.max(1, Math.min(7, parseInt($('#fTimes').value, 10) || 3));
   }
 
@@ -787,6 +946,7 @@
       type: draft.type,
       target: draft.type === 'quantity' ? draft.target : 1,
       unit: draft.type === 'quantity' ? draft.unit : '',
+      reminder: draft.reminder || '',
       schedule: draft.schedule,
     };
 
@@ -796,11 +956,15 @@
       state.habits.push(Object.assign({ id: uid(), createdAt: todayKey(), archived: false }, payload));
     }
     save();
+    // Ask for notification access only once the user actually wants a reminder.
+    if (draft.reminder && shell && shell.requestNotificationPermission) {
+      try { shell.requestNotificationPermission(); } catch (err) { /* older shell */ }
+    }
     $('#habitDialog').close();
     renderHabitsView();
     renderToday();
     renderProgressIfVisible();
-    toast(t('habitSaved'));
+    toast(t(draft.reminder ? 'reminderSaved' : 'habitSaved'));
     return true;
   }
 
@@ -1079,10 +1243,108 @@
     $('#langSelect').value = state.lang;
     $('#weekStart').value = String(state.weekStart);
     fillCategorySelect();
+    buildLayoutPickers();
     updateViewTitle();
     updateStorageInfo();
     renderAll();
   }
+
+  /* ── Layout and size ───────────────────────────────────────────────── */
+  function applyLayout() {
+    const root = document.documentElement;
+    root.setAttribute('data-layout', LAYOUTS.includes(state.layout) ? state.layout : 'comfortable');
+    root.setAttribute('data-density', DENSITIES.includes(state.density) ? state.density : 'default');
+  }
+
+  function buildLayoutPickers() {
+    buildSegmented($('#layoutSelect'), LAYOUTS.map((value) => ({
+      value: value,
+      label: t('layout' + value.charAt(0).toUpperCase() + value.slice(1)),
+    })), state.layout, (value) => {
+      state.layout = value;
+      save();
+      applyLayout();
+      buildLayoutPickers();
+      renderToday();
+    });
+
+    buildSegmented($('#sizeSelect'), DENSITIES.map((value) => ({
+      value: value,
+      label: t('size' + value.charAt(0).toUpperCase() + value.slice(1)),
+    })), state.density, (value) => {
+      state.density = value;
+      save();
+      applyLayout();
+      buildLayoutPickers();
+      renderProgressIfVisible();   // charts measure their container, so redraw
+    });
+  }
+
+  /* ── Android shell bridge ──────────────────────────────────────────────
+     Habit data lives in this page's localStorage, which native code cannot
+     read. The shell needs a copy to render its widget and schedule
+     reminders, so push a compact snapshot of today after every save. */
+  function syncToShell() {
+    if (!shell || !shell.syncState) return;
+    try {
+      const key = todayKey();
+      const due = habitsFor(key);
+      shell.syncState(JSON.stringify({
+        date: key,
+        done: due.filter((h) => isComplete(h, key)).length,
+        due: due.length,
+        lang: state.lang,
+        habits: due.map((h) => ({
+          id: h.id,
+          name: h.name,
+          emoji: h.emoji || '✅',
+          colorIndex: h.colorIndex || 1,
+          type: h.type,
+          target: targetOf(h),
+          unit: h.unit || '',
+          value: valueOf(h, key),
+          done: isComplete(h, key),
+        })),
+        reminders: activeHabits()
+          .filter((h) => h.reminder)
+          .map((h) => ({ id: h.id, name: h.name, time: h.reminder })),
+      }));
+    } catch (err) {
+      console.warn('Could not sync to shell', err);
+    }
+  }
+
+  /* Ticks made from the widget or a notification queue up natively; drain
+     them through the normal write path so streaks and charts stay correct. */
+  function applyPendingFromShell() {
+    if (!shell || !shell.takePending) return;
+    let actions;
+    try {
+      actions = JSON.parse(shell.takePending() || '[]');
+    } catch (err) {
+      console.warn('Could not read pending actions', err);
+      return;
+    }
+    if (!Array.isArray(actions) || !actions.length) return;
+
+    let changed = false;
+    actions.forEach((action) => {
+      const habit = habitById(action.habitId);
+      if (!habit || habit.archived) return;
+      const key = action.date || todayKey();
+      if (action.action === 'toggle') {
+        setValue(habit, key, isComplete(habit, key) ? 0 : targetOf(habit));
+        changed = true;
+      } else if (action.action === 'increment') {
+        setValue(habit, key, valueOf(habit, key) + 1);
+        changed = true;
+      }
+    });
+    if (changed) renderAll();
+  }
+
+  // The activity calls this from onResume.
+  window.__glow = { applyPending: applyPendingFromShell };
 
   function updateViewTitle() {
     const titles = { today: 'navToday', habits: 'navHabits', progress: 'navProgress', settings: 'navSettings' };
@@ -1322,6 +1584,7 @@
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState !== 'visible') return;
       if (selectedDate < todayKey()) selectedDate = todayKey();
+      applyPendingFromShell();
       renderAll();
     });
   }
@@ -1331,7 +1594,10 @@
     load();
     wire();
     applyTheme();
+    applyLayout();
+    applyPendingFromShell();   // ticks made from the widget while the app was closed
     applyLang();
+    syncToShell();
     setView(location.hash.slice(1) || 'today', true);
     updateInstallUi();
 

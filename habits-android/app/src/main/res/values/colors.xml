@@ -4,4 +4,11 @@
        a different colour before the page paints. -->
   <color name="window_bg">#F4F5F7</color>
   <color name="icon_bg">#12233A</color>
+
+  <!-- Widgets are drawn by the launcher, not the app, so they carry their own
+       palette rather than reading the web page's CSS variables. -->
+  <color name="widget_bg">#F4F5F7</color>
+  <color name="widget_ink">#0B0B0B</color>
+  <color name="widget_muted">#52514E</color>
+  <color name="widget_done">#0CA30C</color>
 </resources>

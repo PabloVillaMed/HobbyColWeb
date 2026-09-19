@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+  <!-- Reminders: post the notification, and re-arm alarms after a reboot. -->
+  <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+  <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+  <uses-permission android:name="android.permission.VIBRATE" />
+
   <application
       android:allowBackup="true"
       android:fullBackupContent="@xml/backup_rules"
@@ -21,5 +26,42 @@
         <category android:name="android.intent.category.LAUNCHER" />
       </intent-filter>
     </activity>
+
+    <!-- Fires a habit's reminder, and handles its Mark done action. -->
+    <receiver
+        android:name=".ReminderReceiver"
+        android:exported="false">
+      <intent-filter>
+        <action android:name="com.pablo.glowapp.REMIND" />
+        <action android:name="com.pablo.glowapp.MARK_DONE" />
+      </intent-filter>
+    </receiver>
+
+    <receiver
+        android:name=".BootReceiver"
+        android:exported="false">
+      <intent-filter>
+        <action android:name="android.intent.action.BOOT_COMPLETED" />
+      </intent-filter>
+    </receiver>
+
+    <!-- Home-screen widget listing today's habits. -->
+    <receiver
+        android:name=".GlowWidgetProvider"
+        android:label="@string/widget_label"
+        android:exported="true">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+        <action android:name="com.pablo.glowapp.WIDGET_TOGGLE" />
+      </intent-filter>
+      <meta-data
+          android:name="android.appwidget.provider"
+          android:resource="@xml/glow_widget_info" />
+    </receiver>
+
+    <service
+        android:name=".GlowWidgetService"
+        android:permission="android.permission.BIND_REMOTEVIEWS"
+        android:exported="false" />
   </application>
 </manifest>

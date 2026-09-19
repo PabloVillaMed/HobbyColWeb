@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Native strings follow the system language; the web interface has its own
+     switch inside the app. -->
+<resources>
+  <string name="reminder_channel">Recordatorios</string>
+  <string name="reminder_channel_desc">Avisos diarios de los hábitos que programaste</string>
+  <string name="reminder_title">Toca hacer %1$s</string>
+  <string name="reminder_body">Abre GlowApp o márcalo como hecho desde aquí.</string>
+  <string name="mark_done">Marcar hecho</string>
+
+  <string name="widget_label">GlowApp — Hoy</string>
+  <string name="widget_empty">Abre GlowApp para empezar</string>
+</resources>

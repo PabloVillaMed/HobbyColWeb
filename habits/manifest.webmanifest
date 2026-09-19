@@ -1,6 +1,6 @@
 {
-  "name": "Hábitos — Habit & Mood Tracker",
-  "short_name": "Hábitos",
+  "name": "GlowApp — Habit & Mood Tracker",
+  "short_name": "GlowApp",
   "description": "Seguimiento de hábitos, ejercicio y estado de ánimo. Habit, exercise and mood tracking that works offline.",
   "start_url": "./index.html",
   "scope": "./",
@@ -8,7 +8,11 @@
   "orientation": "portrait",
   "background_color": "#0D1117",
   "theme_color": "#0D1117",
-  "categories": ["health", "lifestyle", "productivity"],
+  "categories": [
+    "health",
+    "lifestyle",
+    "productivity"
+  ],
   "icons": [
     {
       "src": "icons/icon-192.png",

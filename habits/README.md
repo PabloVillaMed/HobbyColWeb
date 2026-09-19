@@ -1,6 +1,7 @@
-# Hábitos
+# GlowApp
 
-An installable habit, exercise and mood tracker. No build step, no accounts, no
+An installable habit, exercise and mood tracker. Formerly called Hábitos;
+existing browser data is migrated automatically on first load. No build step, no accounts, no
 backend — plain HTML, CSS and JavaScript that works offline once loaded.
 
 ## Running it
@@ -31,6 +32,14 @@ Screen*.
   and weekly-quota habits are counted in whole weeks.
 - **Mood** — a 1–5 daily rating with optional energy level and a note, charted
   over time and cross-referenced against habit completion.
+
+## Layout and size
+
+The Today view has four layouts — Comfortable, Compact, Grid and Focus — and
+three sizes, both under **Ajustes → Apariencia**. Size is the replacement for
+pinch-zoom, which is deliberately disabled: every text size is in `rem` and the
+layout paddings with them, so changing the root size rescales the interface in
+one step while tap targets stay pinned in pixels.
 
 ## Language and theme
 
