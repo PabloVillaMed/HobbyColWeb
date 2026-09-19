@@ -1652,7 +1652,7 @@
      because nobody wants to sit through a splash they have seen a hundred
      times. */
   const PHRASE_KEY = 'glow.lastPhrase';
-  const SPLASH_HOLD = 1750;
+  const SPLASH_HOLD = 2250;
 
   function pickPhrase() {
     const phrases = t('phrases');
