@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <!--
+    API 35 stops insetting the window for apps that target it, so the page would
+    otherwise draw under the status and navigation bars. MainActivity already
+    pads by the window insets, but that arrangement cannot be verified on the
+    emulator available here, so this build keeps the system's own insetting,
+    which is the behaviour actually tested. The attribute stops being honoured
+    at targetSdk 36; by then the inset code carries it.
+  -->
+  <style name="AppTheme" parent="@android:style/Theme.Material.NoActionBar">
+    <item name="android:windowBackground">@color/window_bg</item>
+    <item name="android:statusBarColor">@color/window_bg</item>
+    <item name="android:navigationBarColor">@color/window_bg</item>
+    <item name="android:windowLightStatusBar">false</item>
+    <item name="android:windowOptOutEdgeToEdgeEnforcement">true</item>
+  </style>
+</resources>

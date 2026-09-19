@@ -6,8 +6,15 @@ truth — edit the app there, rebuild, and the APK picks the changes up.
 
 ## The built APK
 
-`Habitos-1.0.apk` sits at the repository root. It is signed with the release key
-in `keystore/` (not committed), targets API 32, and needs Android 7.0 or newer.
+`Habitos-1.1.apk` sits at the repository root. It is signed with the release key
+in `keystore/` (not committed), targets API 35 (Android 15), and needs Android
+7.0 or newer.
+
+The target matters. The first build targeted API 32 and Google Play Protect
+refused to install it — "This app was built for an older version of Android and
+doesn't include the latest privacy protections." Play Protect gates sideloads on
+`targetSdkVersion`, so the fix was to build against a current platform rather
+than to click past the warning.
 
 ## Installing on a phone
 
@@ -29,7 +36,8 @@ cd habits-android
 ```
 
 `local.properties` points at the Android SDK; it is machine-specific and not
-committed. The build needs JDK 17 and an SDK with platform 32 and build-tools 32.
+committed. The build needs JDK 17 and an SDK with platform 35 and build-tools
+35.0.1, driven by Gradle 8.7 and Android Gradle Plugin 8.6.1.
 
 To bump the version, edit `versionCode` and `versionName` in `app/build.gradle`.
 Android only replaces an installed app when the new APK is signed with the same
@@ -67,6 +75,20 @@ interceptor via `ServiceWorkerController`.
 
 The back button returns to the Today tab first and leaves the app only from
 there.
+
+### Window insets
+
+From targetSdk 35 Android stops insetting the window and apps draw behind the
+system bars. `MainActivity` pads its root view by the window insets to handle
+that, and the page reports its own background colour over a JavaScript bridge so
+the bar areas match the active theme.
+
+That path could not be exercised here — the installed emulator binary predates
+API 35 images and cannot boot one — so this build also sets
+`windowOptOutEdgeToEdgeEnforcement`, keeping the system's own insetting and
+therefore the layout that was actually tested. The attribute is ignored from
+targetSdk 36 onwards; whoever raises the target next should drop it and verify
+the inset code on a real API 35+ device.
 
 ## Where the data lives
 

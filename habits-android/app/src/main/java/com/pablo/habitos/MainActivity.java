@@ -1,10 +1,16 @@
 package com.pablo.habitos;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.content.Intent;
+import android.graphics.Insets;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.view.View;
+import android.view.WindowInsets;
 import android.webkit.CookieManager;
+import android.webkit.JavascriptInterface;
 import android.webkit.ServiceWorkerClient;
 import android.webkit.ServiceWorkerController;
 import android.webkit.WebResourceRequest;
@@ -12,13 +18,15 @@ import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.app.Activity;
+import android.widget.FrameLayout;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Native shell for the Hábitos web app.
@@ -35,15 +43,36 @@ public class MainActivity extends Activity {
   private static final String ASSET_ROOT = "www";
   private static final String START_URL = ORIGIN + "/index.html";
 
+  /** Reports the page's own background colour so the bars behind the insets match it. */
+  private static final String THEME_WATCHER =
+      "(function () {"
+    + "  function report() {"
+    + "    try { NativeShell.setBackgroundColor(getComputedStyle(document.body).backgroundColor); }"
+    + "    catch (e) {}"
+    + "  }"
+    + "  report();"
+    + "  new MutationObserver(report).observe(document.documentElement,"
+    + "    { attributes: true, attributeFilter: ['data-theme'] });"
+    + "})();";
+
+  private static final Pattern RGB =
+      Pattern.compile("rgba?[(]([0-9]+),[ ]*([0-9]+),[ ]*([0-9]+)");
+
+  private FrameLayout root;
   private WebView webView;
 
-  @SuppressLint("SetJavaScriptEnabled")
+  @SuppressLint({"SetJavaScriptEnabled", "AddJavascriptInterface"})
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
 
     webView = new WebView(this);
-    setContentView(webView);
+    root = new FrameLayout(this);
+    root.addView(webView, new FrameLayout.LayoutParams(
+        FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+    setContentView(root);
+
+    applyWindowInsets();
 
     WebSettings settings = webView.getSettings();
     settings.setJavaScriptEnabled(true);
@@ -58,6 +87,9 @@ public class MainActivity extends Activity {
 
     CookieManager.getInstance().setAcceptCookie(false);
 
+    // Only reachable from the bundled page, which is the app's own code.
+    webView.addJavascriptInterface(new ShellBridge(), "NativeShell");
+
     webView.setWebViewClient(new WebViewClient() {
       @Override
       public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
@@ -71,6 +103,11 @@ public class MainActivity extends Activity {
         // Anything outside the bundled app belongs in the browser.
         startActivity(new Intent(Intent.ACTION_VIEW, uri));
         return true;
+      }
+
+      @Override
+      public void onPageFinished(WebView view, String url) {
+        view.evaluateJavascript(THEME_WATCHER, null);
       }
     });
 
@@ -89,6 +126,50 @@ public class MainActivity extends Activity {
       webView.restoreState(savedInstanceState);
     } else {
       webView.loadUrl(START_URL);
+    }
+  }
+
+  /**
+   * From targetSdk 35 the system no longer insets the window, so the app draws
+   * behind the status and navigation bars. Padding the root keeps the page
+   * clear of them while the bars themselves show the page's own colour.
+   */
+  private void applyWindowInsets() {
+    root.setOnApplyWindowInsetsListener((view, insets) -> {
+      int left, top, right, bottom;
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        Insets bars = insets.getInsets(
+            WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout());
+        left = bars.left;
+        top = bars.top;
+        right = bars.right;
+        bottom = bars.bottom;   // the keyboard is handled by adjustResize
+      } else {
+        left = insets.getSystemWindowInsetLeft();
+        top = insets.getSystemWindowInsetTop();
+        right = insets.getSystemWindowInsetRight();
+        bottom = insets.getSystemWindowInsetBottom();
+      }
+      view.setPadding(left, top, right, bottom);
+      return insets;
+    });
+  }
+
+  /** Lets the page keep the letterboxed bar areas in sync with its own theme. */
+  private class ShellBridge {
+    @JavascriptInterface
+    public void setBackgroundColor(final String css) {
+      if (css == null) return;
+      final Matcher match = RGB.matcher(css);
+      if (!match.find()) return;
+      final int color = 0xFF000000
+          | (Integer.parseInt(match.group(1)) << 16)
+          | (Integer.parseInt(match.group(2)) << 8)
+          | Integer.parseInt(match.group(3));
+      runOnUiThread(() -> {
+        root.setBackgroundColor(color);
+        getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(color));
+      });
     }
   }
 
