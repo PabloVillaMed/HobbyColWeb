@@ -33,6 +33,26 @@ Screen*.
 - **Mood** — a 1–5 daily rating with optional energy level and a note, charted
   over time and cross-referenced against habit completion.
 
+## The starting test
+
+On the very first launch, after the splash, six questions ask what the person
+wants to improve, **what they already do**, how much time they have, how many
+habits they want, what they find hardest, and when their day works best.
+
+The answers are scored against a catalogue in `app.js` (`HABIT_CATALOGUE`)
+and come back as two groups: habits they already keep — offered so a streak
+starts counting today — and new suggestions spread across the chosen areas.
+
+Targets are adjusted rather than fixed: a small time budget, or saying that
+consistency is the hard part, scales them down. Only targets that actually cost
+time are scaled, because trimming "8 glasses of water" for someone who is busy
+would just make the goal meaningless, and a habit they already keep starts at
+its normal level rather than a beginner's.
+
+Answers are kept in `state.onboarding`, which is also what lets the Habits tab
+show personalised starters instead of the generic ones. **Ajustes → Repetir el
+test inicial** runs it again; erasing all data offers it again too.
+
 ## Layout and size
 
 The Today view has four layouts — Comfortable, Compact, Grid and Focus — and

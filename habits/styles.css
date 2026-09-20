@@ -587,6 +587,17 @@ td { font-variant-numeric: tabular-nums; }
 }
 .splash.is-leaving { opacity: 0; pointer-events: none; }
 
+/* The app behind the splash is taller than the window, so the scroll bar was
+   drawing down the right-hand edge of the launch screen. Lock the page while
+   it plays: the bar goes, and the app cannot be scrolled underneath either. */
+:root.is-splashing,
+:root.is-splashing body {
+  overflow: hidden;
+  scrollbar-width: none;
+}
+:root.is-splashing::-webkit-scrollbar,
+:root.is-splashing body::-webkit-scrollbar { display: none; }
+
 .splash-inner { display: flex; flex-direction: column; align-items: center; gap: 14px; }
 
 .splash-mark {
@@ -632,6 +643,72 @@ td { font-variant-numeric: tabular-nums; }
 .setting-row-stack label { color: var(--ink-2); font-size: 0.82rem; font-weight: 600; }
 .segmented-wrap { flex-wrap: wrap; }
 .segmented-wrap button { flex: 1 1 40%; }
+
+/* ══ Starting test ══════════════════════════════════════════════════
+   Same surfaces, radii and accent as the rest of the app — it should read
+   as part of GlowApp, not as a wizard bolted on. */
+.onboarding {
+  position: fixed; inset: 0; z-index: 900;
+  display: grid; place-items: center;
+  background: var(--bg);
+  padding: 1rem;
+  overflow-y: auto;
+}
+.ob-panel {
+  width: 100%; max-width: 30rem;
+  display: flex; flex-direction: column; gap: 1.25rem;
+  animation: ob-in 0.28s ease-out both;
+}
+@keyframes ob-in { from { opacity: 0; transform: translateY(10px); } }
+
+/* One pip per step, filled as you advance. */
+.ob-progress { display: flex; gap: 5px; }
+.ob-pip {
+  height: 3px; flex: 1; border-radius: 999px; background: var(--surface-3);
+  transition: background 0.25s;
+}
+.ob-pip.is-done { background: var(--accent); }
+
+.ob-body { display: flex; flex-direction: column; gap: 0.75rem; }
+.ob-step { font-size: 0.74rem; font-weight: 650; color: var(--ink-3); letter-spacing: 0.02em; }
+.ob-question { font-size: 1.3rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.25; }
+.ob-hint { font-size: 0.85rem; color: var(--ink-2); }
+
+.ob-options { display: flex; flex-direction: column; gap: 8px; margin-top: 0.25rem; }
+.ob-option {
+  display: flex; align-items: center; gap: 0.75rem; width: 100%;
+  min-height: var(--tap); padding: 0.7rem 0.9rem; text-align: left;
+  background: var(--surface); color: var(--ink);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  font-size: 0.92rem; font-weight: 550;
+  transition: border-color 0.12s, background 0.12s;
+}
+.ob-option:hover { border-color: var(--border-strong); }
+.ob-option[aria-pressed='true'], .ob-option[aria-checked='true'] {
+  border-color: var(--accent); background: var(--accent-soft);
+}
+.ob-option .ob-emoji { font-size: 1.15rem; flex: none; }
+.ob-option .ob-label { flex: 1; min-width: 0; }
+.ob-option .ob-meta { font-size: 0.76rem; color: var(--ink-2); }
+/* The tick is always in the layout, so selecting never shifts the text. */
+.ob-option .ob-tick {
+  flex: none; width: 1.25rem; text-align: center; color: var(--accent);
+  font-weight: 700; opacity: 0;
+}
+.ob-option[aria-pressed='true'] .ob-tick,
+.ob-option[aria-checked='true'] .ob-tick { opacity: 1; }
+
+.ob-foot { display: flex; align-items: center; gap: 8px; }
+.ob-foot .btn { flex: 1; }
+.ob-foot .btn-ghost { flex: 0 0 auto; background: none; border-color: transparent; color: var(--ink-2); }
+.ob-error { color: var(--danger); font-size: 0.82rem; }
+
+/* Results */
+.ob-group-title {
+  font-size: 0.78rem; font-weight: 650; color: var(--ink-2);
+  margin-top: 0.5rem;
+}
+.ob-suggestions { display: flex; flex-direction: column; gap: 8px; }
 
 /* ══ Today layouts ══════════════════════════════════════════════════
    Each block restyles only the Today view. Comfortable is the default

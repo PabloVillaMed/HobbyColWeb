@@ -16,8 +16,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="GlowApp">
-  <link rel="stylesheet" href="styles.css?v=2.3">
-  <script src="i18n.js?v=2.3"></script>
+  <link rel="stylesheet" href="styles.css?v=2.4">
+  <script src="i18n.js?v=2.4"></script>
 </head>
 <body>
   <!-- Launch screen. The mark draws itself, then a phrase lands under it.
@@ -46,6 +46,7 @@
        splash paints, instead of appearing once the main script has parsed. */
     (function () {
       try {
+        document.documentElement.classList.add('is-splashing');
         var saved = JSON.parse(localStorage.getItem('glow.v1') || '{}');
         var lang = saved.lang
           || ((navigator.language || 'es').toLowerCase().indexOf('es') === 0 ? 'es' : 'en');
@@ -62,6 +63,17 @@
       }
     })();
   </script>
+
+  <!-- Starting test. Shown once, on the first launch, and again only if the
+       user asks for it from Ajustes. Built in app.js so every string follows
+       the language switch. -->
+  <div class="onboarding" id="onboarding" hidden>
+    <div class="ob-panel" role="dialog" aria-modal="true" aria-labelledby="obHeading">
+      <div class="ob-progress" id="obProgress" aria-hidden="true"></div>
+      <div class="ob-body" id="obBody"></div>
+      <footer class="ob-foot" id="obFoot"></footer>
+    </div>
+  </div>
 
   <a class="skip-link" href="#main" data-i18n="skipToContent">Ir al contenido</a>
 
@@ -284,6 +296,10 @@
           <h3 id="setData" data-i18n="setData">Tus datos</h3>
           <p class="muted" data-i18n="dataBlurb">Todo se guarda solo en este navegador. No hay cuentas ni servidores. Exporta de vez en cuando para no perder nada.</p>
           <div class="button-row">
+            <button type="button" class="btn" id="btnRetakeTest" data-i18n="obRetake">Repetir el test inicial</button>
+          </div>
+          <p class="muted small" data-i18n="obRetakeHint">Vuelve a sugerirte hábitos según tus respuestas.</p>
+          <div class="button-row">
             <button type="button" class="btn" id="btnExport" data-i18n="exportData">Exportar JSON</button>
             <button type="button" class="btn" id="btnImport" data-i18n="importData">Importar JSON</button>
             <button type="button" class="btn btn-danger" id="btnReset" data-i18n="resetData">Borrar todo</button>
@@ -458,8 +474,8 @@
     </symbol>
   </svg>
 
-  <script src="sounds.js?v=2.3"></script>
-  <script src="charts.js?v=2.3"></script>
-  <script src="app.js?v=2.3"></script>
+  <script src="sounds.js?v=2.4"></script>
+  <script src="charts.js?v=2.4"></script>
+  <script src="app.js?v=2.4"></script>
 </body>
 </html>

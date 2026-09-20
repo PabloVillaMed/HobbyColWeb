@@ -22,7 +22,7 @@
   const EMOJIS = [
     '🧘', '💪', '🏃', '🚶', '🚴', '🏋️', '🧠', '📓', '📖', '💧',
     '🥗', '🍎', '😴', '☀️', '🌙', '🙏', '💊', '🚭', '📵', '🧹',
-    '🎯', '🎸', '🎨', '💻', '🗣️', '❤️', '🌱', '🧴',
+    '🎯', '🎸', '🎨', '💻', '🗣️', '❤️', '🌱', '🧴', '🧎',
   ];
 
   const CATEGORIES = [
@@ -95,6 +95,7 @@
     layout: 'comfortable',
     density: 'default',
     sound: true,
+    onboarding: null,
     habits: [],
     entries: {},
     moods: {},
@@ -625,6 +626,39 @@
   function renderPresets() {
     const grid = $('#presetGrid');
     grid.innerHTML = '';
+
+    /* Once the test has been taken, its suggestions replace the generic
+       starters — same chips, but the habits and targets are the ones that
+       matched the answers. */
+    const answers = state.onboarding && state.onboarding.answers;
+    if (answers) {
+      const suggested = buildSuggestions(answers).suggested;
+      if (suggested.length) {
+        suggested.forEach((habit) => {
+          const chip = button('preset-chip', null);
+          chip.innerHTML = '<span aria-hidden="true">' + habit.emoji + '</span>';
+          chip.appendChild(document.createTextNode(habit.name));
+          chip.addEventListener('click', () => {
+            state.habits.push(Object.assign({
+              id: uid(), reminder: '', schedule: { kind: 'daily' },
+              createdAt: todayKey(), archived: false,
+            }, {
+              name: habit.name, emoji: habit.emoji, colorIndex: habit.colorIndex,
+              category: habit.category, type: habit.type,
+              target: habit.target, unit: habit.unit,
+            }));
+            save();
+            Sounds.play('complete');
+            renderHabitsView();
+            renderToday();
+            toast(t('habitSaved'));
+          });
+          grid.appendChild(chip);
+        });
+        return;
+      }
+    }
+
     PRESETS.forEach((preset) => {
       const chip = button('preset-chip', null);
       chip.innerHTML = '<span aria-hidden="true">' + preset.emoji + '</span>';
@@ -1599,6 +1633,7 @@
       renderAll();
     });
 
+    $('#btnRetakeTest').addEventListener('click', () => startOnboarding());
     $('#btnExport').addEventListener('click', exportData);
     $('#btnImport').addEventListener('click', () => $('#importFile').click());
     $('#importFile').addEventListener('change', (evt) => {
@@ -1616,6 +1651,7 @@
       applyLang();
       setView('today');
       toast(t('resetDone'));
+      startOnboarding();          // a cleared app is a new app
     });
     $('#btnInstall').addEventListener('click', async () => {
       if (!deferredInstall) return;
@@ -1647,6 +1683,463 @@
     });
   }
 
+  /* ══ Starting test ═══════════════════════════════════════════════════
+     Six questions, asked once, that turn into habits the person can accept
+     or drop. The catalogue below is scored against the answers; nothing is
+     created until they press the button on the results screen.
+     "cost" is rough minutes per day, used to keep suggestions inside the
+     time someone actually said they have. */
+  const HABIT_CATALOGUE = [
+    { id: 'meditate', key: 'hbMeditate', emoji: '🧘', color: 7, area: 'mental', cat: 'mental', type: 'quantity', target: 10, unit: 'unitMin', cost: 10, moment: 'morning' },
+    { id: 'gratitude', key: 'hbGratitude', emoji: '🙏', color: 5, area: 'mental', cat: 'mental', type: 'binary', cost: 3, moment: 'evening' },
+    { id: 'journal', key: 'hbJournal', emoji: '📓', color: 7, area: 'mental', cat: 'mental', type: 'quantity', target: 5, unit: 'unitMin', cost: 5, moment: 'evening' },
+    { id: 'selfcare', key: 'hbSelfcare', emoji: '❤️', color: 5, area: 'mental', cat: 'mental', type: 'binary', cost: 10 },
+    { id: 'walk', key: 'hbWalk', emoji: '🚶', color: 3, area: 'fitness', cat: 'fitness', type: 'quantity', target: 20, unit: 'unitMin', cost: 20 },
+    { id: 'run', key: 'hbRun', emoji: '🏃', color: 3, area: 'fitness', cat: 'fitness', type: 'quantity', target: 3, unit: 'unitKm', cost: 25, moment: 'morning' },
+    { id: 'strength', key: 'hbStrength', emoji: '💪', color: 2, area: 'fitness', cat: 'fitness', type: 'binary', cost: 30 },
+    { id: 'bike', key: 'hbBike', emoji: '🚴', color: 3, area: 'fitness', cat: 'fitness', type: 'quantity', target: 20, unit: 'unitMin', cost: 20 },
+    { id: 'stretch', key: 'hbStretch', emoji: '🧎', color: 4, area: 'fitness', cat: 'fitness', type: 'quantity', target: 5, unit: 'unitMin', cost: 5, moment: 'morning' },
+    { id: 'water', key: 'hbWater', emoji: '💧', color: 1, area: 'health', cat: 'health', type: 'quantity', target: 8, unit: 'unitGlasses', cost: 1 },
+    { id: 'fruit', key: 'hbFruit', emoji: '🍎', color: 8, area: 'health', cat: 'health', type: 'quantity', target: 2, unit: 'unitServings', cost: 2 },
+    { id: 'veggies', key: 'hbVeggies', emoji: '🥗', color: 6, area: 'health', cat: 'health', type: 'binary', cost: 5 },
+    { id: 'vitamins', key: 'hbVitamins', emoji: '💊', color: 4, area: 'health', cat: 'health', type: 'binary', cost: 1 },
+    { id: 'skincare', key: 'hbSkincare', emoji: '🧴', color: 5, area: 'health', cat: 'health', type: 'binary', cost: 3, moment: 'evening' },
+    { id: 'sunlight', key: 'hbSunlight', emoji: '☀️', color: 4, area: 'health', cat: 'health', type: 'binary', cost: 10, moment: 'morning' },
+    { id: 'sleepEarly', key: 'hbSleepEarly', emoji: '😴', color: 7, area: 'sleep', cat: 'health', type: 'binary', cost: 0, moment: 'evening' },
+    { id: 'noPhoneBed', key: 'hbNoPhoneBed', emoji: '📵', color: 8, area: 'sleep', cat: 'mental', type: 'binary', cost: 0, moment: 'evening' },
+    { id: 'nightRoutine', key: 'hbNightRoutine', emoji: '🌙', color: 7, area: 'sleep', cat: 'health', type: 'binary', cost: 10, moment: 'evening' },
+    { id: 'read', key: 'hbRead', emoji: '📖', color: 6, area: 'focus', cat: 'focus', type: 'quantity', target: 20, unit: 'unitPages', cost: 20, moment: 'evening' },
+    { id: 'study', key: 'hbStudy', emoji: '💻', color: 1, area: 'focus', cat: 'focus', type: 'quantity', target: 25, unit: 'unitMin', cost: 25 },
+    { id: 'planDay', key: 'hbPlanDay', emoji: '🎯', color: 1, area: 'focus', cat: 'focus', type: 'binary', cost: 5, moment: 'morning' },
+    { id: 'tidy', key: 'hbTidy', emoji: '🧹', color: 4, area: 'focus', cat: 'focus', type: 'quantity', target: 10, unit: 'unitMin', cost: 10 },
+    { id: 'callSomeone', key: 'hbCallSomeone', emoji: '🗣️', color: 5, area: 'social', cat: 'social', type: 'binary', cost: 10 },
+  ];
+
+  const OB_AREAS = ['mental', 'fitness', 'health', 'sleep', 'focus', 'social'];
+  const OB_TIME = [
+    { value: 5, key: 'obTime5' }, { value: 15, key: 'obTime15' },
+    { value: 30, key: 'obTime30' }, { value: 60, key: 'obTime60' },
+  ];
+  const OB_COUNT = [
+    { value: 3, key: 'obCountFew' }, { value: 5, key: 'obCountSome' }, { value: 7, key: 'obCountMany' },
+  ];
+  const OB_HARD = ['time', 'forget', 'motivation', 'consistency'];
+  const OB_MOMENT = ['morning', 'afternoon', 'evening', 'anytime'];
+
+  /* Shortlist for "what do you already do", drawn from the catalogue so the
+     answers line up with what can be suggested. */
+  const OB_CURRENT_IDS = ['water', 'walk', 'strength', 'read', 'meditate',
+    'sleepEarly', 'veggies', 'planDay', 'noPhoneBed', 'stretch'];
+
+  const catalogueById = (id) => HABIT_CATALOGUE.find((h) => h.id === id);
+
+  /**
+   * Turns the answers into concrete habits.
+   *
+   * Two groups come back: things already done (worth tracking from today, so
+   * a streak starts straight away) and new suggestions scored on the chosen
+   * areas, the time available and the preferred moment. Targets scale down
+   * when someone has little time or says consistency is their problem — a
+   * target missed on day two teaches the wrong lesson.
+   */
+  function buildSuggestions(answers) {
+    const areas = answers.areas || [];
+    const budget = answers.time || 15;
+    const wanted = answers.count || 3;
+    const already = answers.current || [];
+
+    let scale = budget <= 5 ? 0.5 : budget <= 15 ? 0.75 : budget <= 30 ? 1 : 1.2;
+    if (answers.hard === 'consistency' || answers.hard === 'motivation') scale *= 0.8;
+
+    /* Only targets that actually cost time get scaled by the time budget.
+       Eight glasses of water is not a ten-minute commitment, so trimming it
+       because someone is busy would just make the goal meaningless. And a
+       habit they already keep starts at its normal level, not a beginner's. */
+    const shape = (entry, alreadyKept) => {
+      let target = entry.target || 1;
+      if (entry.type === 'quantity' && !alreadyKept && entry.cost > 5) {
+        target = Math.max(1, Math.round(target * scale));
+      }
+      return {
+        catalogueId: entry.id,
+        name: t(entry.key),
+        emoji: entry.emoji,
+        colorIndex: entry.color,
+        category: entry.cat,
+        type: entry.type,
+        target: entry.type === 'quantity' ? target : 1,
+        unit: entry.type === 'quantity' ? t(entry.unit) : '',
+      };
+    };
+
+    const scored = HABIT_CATALOGUE
+      .filter((entry) => !already.includes(entry.id))
+      .map((entry) => {
+        let score = 0;
+        if (areas.includes(entry.area)) score += 5;
+        if (answers.moment && entry.moment === answers.moment) score += 2;
+        if (!entry.moment) score += 1;                      // fits any schedule
+        if (entry.cost > budget) score -= 4;                // more than they have
+        if (answers.hard === 'time' && entry.cost <= 5) score += 2;
+        return { entry: entry, score: score };
+      })
+      .filter((row) => row.score > 0)
+      .sort((a, b) => b.score - a.score);
+
+    /* Spread across areas, so six suggestions are not six kinds of exercise. */
+    const picked = [];
+    const perArea = {};
+    const cap = areas.length > 2 ? 2 : 3;
+    scored.forEach((row) => {
+      if (picked.length >= wanted) return;
+      const used = perArea[row.entry.area] || 0;
+      if (used >= cap) return;
+      perArea[row.entry.area] = used + 1;
+      picked.push(row.entry);
+    });
+    // If those filters were strict, top up with the best of what is left.
+    scored.forEach((row) => {
+      if (picked.length < wanted && picked.indexOf(row.entry) < 0) picked.push(row.entry);
+    });
+
+    return {
+      already: already.map(catalogueById).filter(Boolean).map((e) => shape(e, true)),
+      suggested: picked.map((e) => shape(e, false)),
+    };
+  }
+
+  /* ── The test itself ──────────────────────────────────────────────── */
+  let obStep = 0;                       // 0 is the intro, 1..6 the questions, 7 results
+  let obAnswers = null;
+  let obResult = null;
+  let obChosen = null;                  // ids ticked on the results screen
+
+  const OB_LAST_STEP = 7;
+
+  function obOption({ label, meta, emoji, selected, onPick, multi }) {
+    const btn = button('ob-option', null,
+      multi ? { 'aria-pressed': String(selected) } : { role: 'radio', 'aria-checked': String(selected) });
+    if (emoji) {
+      const icon = document.createElement('span');
+      icon.className = 'ob-emoji';
+      icon.setAttribute('aria-hidden', 'true');
+      icon.textContent = emoji;
+      btn.appendChild(icon);
+    }
+    const text = document.createElement('span');
+    text.className = 'ob-label';
+    text.textContent = label;
+    if (meta) {
+      const small = document.createElement('span');
+      small.className = 'ob-meta';
+      small.textContent = ' · ' + meta;
+      text.appendChild(small);
+    }
+    const tick = document.createElement('span');
+    tick.className = 'ob-tick';
+    tick.textContent = '✓';
+    btn.append(text, tick);
+    btn.addEventListener('click', () => {
+      Sounds.play('tick');
+      onPick();
+    });
+    return btn;
+  }
+
+  function obQuestion({ step, question, hint, options }) {
+    const body = $('#obBody');
+    body.innerHTML = '';
+    const stepLine = document.createElement('p');
+    stepLine.className = 'ob-step';
+    stepLine.textContent = t('obStepFmt', step);
+    const heading = document.createElement('h2');
+    heading.className = 'ob-question';
+    heading.id = 'obHeading';
+    heading.textContent = question;
+    body.append(stepLine, heading);
+    if (hint) {
+      const hintLine = document.createElement('p');
+      hintLine.className = 'ob-hint';
+      hintLine.textContent = hint;
+      body.appendChild(hintLine);
+    }
+    const list = document.createElement('div');
+    list.className = 'ob-options';
+    options.forEach((opt) => list.appendChild(obOption(opt)));
+    body.appendChild(list);
+  }
+
+  function obFooter(buttons) {
+    const foot = $('#obFoot');
+    foot.innerHTML = '';
+    buttons.forEach((spec) => {
+      if (!spec) return;
+      const btn = button('btn ' + (spec.cls || ''), spec.label);
+      btn.addEventListener('click', spec.onClick);
+      foot.appendChild(btn);
+    });
+  }
+
+  function obProgress() {
+    const bar = $('#obProgress');
+    bar.innerHTML = '';
+    for (let i = 1; i <= 6; i++) {
+      const pip = document.createElement('span');
+      pip.className = 'ob-pip' + (i <= obStep ? ' is-done' : '');
+      bar.appendChild(pip);
+    }
+  }
+
+  function obGo(step) {
+    obStep = Math.max(0, Math.min(OB_LAST_STEP, step));
+    obProgress();
+    obRender();
+    $('#onboarding').scrollTop = 0;
+  }
+
+  function obRender() {
+    const next = (to) => () => obGo(to);
+    const back = { label: t('obBack'), cls: 'btn-ghost', onClick: () => obGo(obStep - 1) };
+
+    if (obStep === 0) {
+      const body = $('#obBody');
+      body.innerHTML = '';
+      const heading = document.createElement('h2');
+      heading.className = 'ob-question';
+      heading.id = 'obHeading';
+      heading.textContent = t('obTitle');
+      const intro = document.createElement('p');
+      intro.className = 'ob-hint';
+      intro.textContent = t('obIntro');
+      body.append(heading, intro);
+      obFooter([
+        { label: t('obSkip'), cls: 'btn-ghost', onClick: () => obFinish([]) },
+        { label: t('obStart'), cls: 'btn-primary', onClick: next(1) },
+      ]);
+      return;
+    }
+
+    if (obStep === 1) {
+      obQuestion({
+        step: 1, question: t('obQAreas'), hint: t('obQAreasHint'),
+        options: OB_AREAS.map((area) => ({
+          label: t('obArea' + area.charAt(0).toUpperCase() + area.slice(1)),
+          multi: true,
+          selected: obAnswers.areas.includes(area),
+          onPick: () => {
+            const at = obAnswers.areas.indexOf(area);
+            if (at >= 0) obAnswers.areas.splice(at, 1);
+            else obAnswers.areas.push(area);
+            obRender();
+          },
+        })),
+      });
+      obFooter([back, {
+        label: t('obNext'), cls: 'btn-primary',
+        onClick: () => (obAnswers.areas.length ? obGo(2) : obWarn()),
+      }]);
+      return;
+    }
+
+    if (obStep === 2) {
+      const options = OB_CURRENT_IDS.map(catalogueById).filter(Boolean).map((entry) => ({
+        label: t(entry.key), emoji: entry.emoji, multi: true,
+        selected: obAnswers.current.includes(entry.id),
+        onPick: () => {
+          const at = obAnswers.current.indexOf(entry.id);
+          if (at >= 0) obAnswers.current.splice(at, 1);
+          else obAnswers.current.push(entry.id);
+          obRender();
+        },
+      }));
+      options.push({
+        label: t('obNoneYet'), multi: true,
+        selected: obAnswers.current.length === 0,
+        onPick: () => { obAnswers.current = []; obRender(); },
+      });
+      obQuestion({ step: 2, question: t('obQCurrent'), hint: t('obQCurrentHint'), options: options });
+      obFooter([back, { label: t('obNext'), cls: 'btn-primary', onClick: next(3) }]);
+      return;
+    }
+
+    if (obStep === 3) {
+      obQuestion({
+        step: 3, question: t('obQTime'), hint: t('obQTimeHint'),
+        options: OB_TIME.map((opt) => ({
+          label: t(opt.key),
+          selected: obAnswers.time === opt.value,
+          onPick: () => { obAnswers.time = opt.value; obGo(4); },
+        })),
+      });
+      obFooter([back]);
+      return;
+    }
+
+    if (obStep === 4) {
+      obQuestion({
+        step: 4, question: t('obQCount'), hint: t('obQCountHint'),
+        options: OB_COUNT.map((opt) => ({
+          label: t(opt.key),
+          selected: obAnswers.count === opt.value,
+          onPick: () => { obAnswers.count = opt.value; obGo(5); },
+        })),
+      });
+      obFooter([back]);
+      return;
+    }
+
+    if (obStep === 5) {
+      obQuestion({
+        step: 5, question: t('obQHard'),
+        options: OB_HARD.map((id) => ({
+          label: t('obHard' + id.charAt(0).toUpperCase() + id.slice(1)),
+          selected: obAnswers.hard === id,
+          onPick: () => { obAnswers.hard = id; obGo(6); },
+        })),
+      });
+      obFooter([back]);
+      return;
+    }
+
+    if (obStep === 6) {
+      const labels = { morning: 'obMorning', afternoon: 'obAfternoon', evening: 'obEvening', anytime: 'obAnyTime' };
+      obQuestion({
+        step: 6, question: t('obQMoment'),
+        options: OB_MOMENT.map((id) => ({
+          label: t(labels[id]),
+          selected: obAnswers.moment === id,
+          onPick: () => { obAnswers.moment = id; obGo(7); },
+        })),
+      });
+      obFooter([back]);
+      return;
+    }
+
+    obRenderResults();
+  }
+
+  function obWarn() {
+    const body = $('#obBody');
+    if ($('.ob-error', body)) return;
+    const warning = document.createElement('p');
+    warning.className = 'ob-error';
+    warning.textContent = t('obPickSome');
+    body.appendChild(warning);
+  }
+
+  function obRenderResults() {
+    obResult = buildSuggestions(obAnswers);
+    if (!obChosen) {
+      // Everything starts ticked; dropping one is a single tap.
+      obChosen = obResult.already.concat(obResult.suggested).map((h) => h.catalogueId);
+    }
+
+    const body = $('#obBody');
+    body.innerHTML = '';
+    const heading = document.createElement('h2');
+    heading.className = 'ob-question';
+    heading.id = 'obHeading';
+    heading.textContent = t('obResultTitle');
+    const hint = document.createElement('p');
+    hint.className = 'ob-hint';
+    hint.textContent = t('obResultHint');
+    body.append(heading, hint);
+
+    const group = (title, list) => {
+      if (!list.length) return;
+      const label = document.createElement('p');
+      label.className = 'ob-group-title';
+      label.textContent = title;
+      const box = document.createElement('div');
+      box.className = 'ob-suggestions';
+      list.forEach((habit) => {
+        box.appendChild(obOption({
+          label: habit.name,
+          meta: habit.type === 'quantity' ? habit.target + ' ' + habit.unit : null,
+          emoji: habit.emoji,
+          multi: true,
+          selected: obChosen.includes(habit.catalogueId),
+          onPick: () => {
+            const at = obChosen.indexOf(habit.catalogueId);
+            if (at >= 0) obChosen.splice(at, 1);
+            else obChosen.push(habit.catalogueId);
+            obRenderResults();
+          },
+        }));
+      });
+      body.append(label, box);
+    };
+
+    group(t('obResultAlready'), obResult.already);
+    group(t('obResultNew'), obResult.suggested);
+
+    obFooter([
+      { label: t('obBack'), cls: 'btn-ghost', onClick: () => obGo(6) },
+      {
+        label: t('obAddSelected'), cls: 'btn-primary',
+        onClick: () => {
+          const all = obResult.already.concat(obResult.suggested);
+          obFinish(all.filter((h) => obChosen.includes(h.catalogueId)));
+        },
+      },
+    ]);
+  }
+
+  /** Creates the accepted habits, records the answers, and closes the test. */
+  function obFinish(habits) {
+    const today = todayKey();
+    habits.forEach((habit) => {
+      state.habits.push({
+        id: uid(),
+        name: habit.name,
+        emoji: habit.emoji,
+        colorIndex: habit.colorIndex,
+        category: habit.category,
+        type: habit.type,
+        target: habit.target,
+        unit: habit.unit,
+        reminder: '',
+        schedule: { kind: 'daily' },
+        createdAt: today,
+        archived: false,
+      });
+    });
+
+    // Keeping the answers is what lets the Habits tab suggest the same list
+    // again later, and what the retake button reloads.
+    state.onboarding = { done: true, at: today, answers: obAnswers };
+    save();
+
+    $('#onboarding').hidden = true;
+    document.documentElement.classList.remove('is-splashing');
+    obAnswers = null;
+    obResult = null;
+    obChosen = null;
+
+    renderAll();
+    if (habits.length) {
+      Sounds.play('complete');
+      toast(t('obAddedFmt', habits.length));
+      setView('today');
+    } else {
+      toast(t('obNothingPicked'));
+    }
+  }
+
+  function startOnboarding() {
+    obAnswers = { areas: [], current: [], time: null, count: null, hard: null, moment: null };
+    obResult = null;
+    obChosen = null;
+    obStep = 0;
+    $('#onboarding').hidden = false;
+    // Reuses the splash lock so the app cannot be scrolled behind the test.
+    document.documentElement.classList.add('is-splashing');
+    obProgress();
+    obRender();
+  }
+
+  const needsOnboarding = () => !(state.onboarding && state.onboarding.done);
+
   /* ── Launch screen ─────────────────────────────────────────────────────
      Plays once per app start, then leaves the DOM entirely. Tapping skips it,
      because nobody wants to sit through a splash they have seen a hundred
@@ -1676,7 +2169,11 @@
 
   function runSplash() {
     const splash = $('#splash');
-    if (!splash) return;
+    if (!splash) {
+      document.documentElement.classList.remove('is-splashing');
+      if (needsOnboarding()) startOnboarding();
+      return;
+    }
 
     // index.html already chose one at first paint; only fill a gap.
     const phraseSlot = $('#splashPhrase');
@@ -1686,6 +2183,9 @@
     const dismiss = () => {
       if (dismissed) return;
       dismissed = true;
+      // The test picks the lock straight back up if it is going to run.
+      if (needsOnboarding()) startOnboarding();
+      else document.documentElement.classList.remove('is-splashing');
       splash.classList.add('is-leaving');
       splash.addEventListener('transitionend', () => splash.remove(), { once: true });
       // Belt and braces: a missed transitionend must not leave it on screen.
