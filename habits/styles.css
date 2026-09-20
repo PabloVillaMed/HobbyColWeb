@@ -393,6 +393,22 @@ select { appearance: none; padding-right: 32px;
 }
 .habit-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .habit-name { font-size: 0.92rem; font-weight: 600; }
+
+/* The row body is a button when it can expand; strip the button chrome so it
+   still reads as part of the row. */
+button.habit-main { text-align: left; font: inherit; color: inherit; cursor: pointer; }
+button.habit-main:hover .habit-name { color: var(--accent); }
+
+.habit-desc {
+  flex-basis: 100%;
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.82rem; line-height: 1.5; color: var(--ink-2);
+  animation: desc-in 0.18s ease-out;
+}
+@keyframes desc-in { from { opacity: 0; transform: translateY(-3px); } }
+.habit-row.is-expanded { flex-wrap: wrap; }
 .habit-meta {
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
   font-size: 0.73rem; color: var(--ink-2); font-variant-numeric: tabular-nums;
@@ -421,6 +437,10 @@ select { appearance: none; padding-right: 32px;
   display: grid; place-items: center; line-height: 1;
 }
 .qty-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+/* The button owns the gesture: holding it must not scroll the page or start
+   a text selection. */
+.qty-btn { touch-action: none; user-select: none; -webkit-user-select: none; }
+.qty-btn:active { background: var(--accent-soft); border-color: var(--accent); }
 .qty-value { min-width: 58px; text-align: center; font-size: 0.8rem; font-variant-numeric: tabular-nums; }
 .qty-value strong { font-size: 1rem; }
 
@@ -645,70 +665,101 @@ td { font-variant-numeric: tabular-nums; }
 .segmented-wrap button { flex: 1 1 40%; }
 
 /* ══ Starting test ══════════════════════════════════════════════════
-   Same surfaces, radii and accent as the rest of the app — it should read
-   as part of GlowApp, not as a wizard bolted on. */
+   Laid out as a full-height column rather than a centred card: the header
+   sits near the top, the options take the room that is left, and the
+   buttons stay pinned at the bottom where a thumb can reach them. That is
+   what removes the big empty band the centred version left above. */
 .onboarding {
   position: fixed; inset: 0; z-index: 900;
-  display: grid; place-items: center;
+  display: flex; flex-direction: column;
   background: var(--bg);
-  padding: 1rem;
-  overflow-y: auto;
 }
 .ob-panel {
-  width: 100%; max-width: 30rem;
-  display: flex; flex-direction: column; gap: 1.25rem;
+  flex: 1; min-height: 0;                    /* lets the body scroll, not the panel */
+  width: 100%; max-width: 30rem; margin: 0 auto;
+  display: flex; flex-direction: column;
+  padding: calc(1.25rem + env(safe-area-inset-top, 0px)) 1.25rem
+           calc(1rem + var(--safe-b));
   animation: ob-in 0.28s ease-out both;
 }
-@keyframes ob-in { from { opacity: 0; transform: translateY(10px); } }
+@keyframes ob-in { from { opacity: 0; transform: translateY(8px); } }
 
 /* One pip per step, filled as you advance. */
-.ob-progress { display: flex; gap: 5px; }
+.ob-progress { display: flex; gap: 5px; flex: none; }
 .ob-pip {
   height: 3px; flex: 1; border-radius: 999px; background: var(--surface-3);
   transition: background 0.25s;
 }
 .ob-pip.is-done { background: var(--accent); }
 
-.ob-body { display: flex; flex-direction: column; gap: 0.75rem; }
-.ob-step { font-size: 0.74rem; font-weight: 650; color: var(--ink-3); letter-spacing: 0.02em; }
-.ob-question { font-size: 1.3rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.25; }
-.ob-hint { font-size: 0.85rem; color: var(--ink-2); }
+.ob-body {
+  flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  display: flex; flex-direction: column; gap: 0.6rem;
+  padding-top: 1.5rem;
+  /* Space so the last option never hides under the buttons. */
+  padding-bottom: 0.5rem;
+  scrollbar-width: none;
+}
+.ob-body::-webkit-scrollbar { display: none; }
 
-.ob-options { display: flex; flex-direction: column; gap: 8px; margin-top: 0.25rem; }
+.ob-step {
+  font-size: 0.72rem; font-weight: 650; color: var(--accent);
+  letter-spacing: 0.06em; text-transform: uppercase;
+}
+.ob-question {
+  font-size: 1.45rem; font-weight: 700; letter-spacing: -0.025em; line-height: 1.2;
+  text-wrap: balance;
+}
+.ob-hint { font-size: 0.86rem; line-height: 1.45; color: var(--ink-2); }
+
+.ob-options { display: flex; flex-direction: column; gap: 7px; margin-top: 0.4rem; }
 .ob-option {
   display: flex; align-items: center; gap: 0.75rem; width: 100%;
   min-height: var(--tap); padding: 0.7rem 0.9rem; text-align: left;
   background: var(--surface); color: var(--ink);
   border: 1px solid var(--border); border-radius: var(--radius);
   font-size: 0.92rem; font-weight: 550;
-  transition: border-color 0.12s, background 0.12s;
+  transition: border-color 0.14s, background 0.14s, transform 0.1s;
 }
 .ob-option:hover { border-color: var(--border-strong); }
+.ob-option:active { transform: scale(0.99); }
 .ob-option[aria-pressed='true'], .ob-option[aria-checked='true'] {
   border-color: var(--accent); background: var(--accent-soft);
 }
 .ob-option .ob-emoji { font-size: 1.15rem; flex: none; }
 .ob-option .ob-label { flex: 1; min-width: 0; }
 .ob-option .ob-meta { font-size: 0.76rem; color: var(--ink-2); }
-/* The tick is always in the layout, so selecting never shifts the text. */
+/* The tick keeps its slot at all times, so selecting never shifts the text. */
 .ob-option .ob-tick {
   flex: none; width: 1.25rem; text-align: center; color: var(--accent);
-  font-weight: 700; opacity: 0;
+  font-weight: 700; opacity: 0; transition: opacity 0.14s;
 }
 .ob-option[aria-pressed='true'] .ob-tick,
 .ob-option[aria-checked='true'] .ob-tick { opacity: 1; }
 
-.ob-foot { display: flex; align-items: center; gap: 8px; }
+.ob-foot {
+  flex: none; display: flex; align-items: center; gap: 8px;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--border);
+}
 .ob-foot .btn { flex: 1; }
 .ob-foot .btn-ghost { flex: 0 0 auto; background: none; border-color: transparent; color: var(--ink-2); }
 .ob-error { color: var(--danger); font-size: 0.82rem; }
 
 /* Results */
 .ob-group-title {
-  font-size: 0.78rem; font-weight: 650; color: var(--ink-2);
-  margin-top: 0.5rem;
+  font-size: 0.72rem; font-weight: 650; color: var(--ink-3);
+  letter-spacing: 0.04em; text-transform: uppercase;
+  margin-top: 0.6rem;
 }
-.ob-suggestions { display: flex; flex-direction: column; gap: 8px; }
+.ob-suggestions { display: flex; flex-direction: column; gap: 7px; }
+
+/* Short screens: tighten the rhythm rather than let the footer be pushed off. */
+@media (max-height: 680px) {
+  .ob-panel { padding-top: calc(0.9rem + env(safe-area-inset-top, 0px)); }
+  .ob-body { padding-top: 1rem; gap: 0.5rem; }
+  .ob-question { font-size: 1.25rem; }
+}
 
 /* ══ Today layouts ══════════════════════════════════════════════════
    Each block restyles only the Today view. Comfortable is the default

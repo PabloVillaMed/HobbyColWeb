@@ -108,6 +108,9 @@
   let range = 30;
   let heatHabitId = 'all';
   let editingId = null;
+  /* Which descriptions are open. Kept outside the habit record because it is
+     view state, not something worth saving. */
+  const expandedDesc = new Set();
   let deferredInstall = null;
 
   function load() {
@@ -134,6 +137,40 @@
     } catch (err) {
       console.warn('Could not read saved data', err);
     }
+  }
+
+  /**
+   * Fills in descriptions for habits created before the field existed.
+   *
+   * Matches on the catalogue name in both languages, because someone may have
+   * added "Beber agua" and since switched the interface to English. Anything
+   * the user typed themselves is left alone — silence is better than a
+   * description that describes the wrong thing.
+   */
+  function backfillDescriptions() {
+    const needs = state.habits.filter((h) => !h.description);
+    if (!needs.length) return false;
+
+    const byName = {};
+    ['es', 'en'].forEach((lang) => {
+      const table = I18N.STRINGS[lang];
+      HABIT_CATALOGUE.forEach((entry) => {
+        if (entry.desc && table[entry.key]) byName[table[entry.key].toLowerCase()] = entry.desc;
+      });
+      PRESETS.forEach((preset) => {
+        if (preset.desc && table[preset.key]) byName[table[preset.key].toLowerCase()] = preset.desc;
+      });
+    });
+
+    let filled = 0;
+    needs.forEach((habit) => {
+      const key = byName[(habit.name || '').trim().toLowerCase()];
+      if (key) {
+        habit.description = t(key);
+        filled++;
+      }
+    });
+    return filled > 0;
   }
 
   let saveTimer = null;
@@ -465,7 +502,7 @@
 
     buzz(15);
     Sounds.play('complete');
-    const row = $('#habitList .habit-row').find(
+    const row = $$('#habitList .habit-row').find(
       (node) => node.dataset.habitId === habit.id
     );
     if (row && !reducedMotion.matches) {
@@ -493,6 +530,106 @@
   const soundForIncrement = (habit) =>
     WATERY.test(habit.name + ' ' + (habit.unit || '')) || habit.emoji === '💧' ? 'drop' : 'tick';
 
+  /* ── Press and hold on + / − ──────────────────────────────────────────
+     A tap still moves one unit. Holding starts slow and speeds up, so ten
+     minutes is a held thumb rather than ten taps.
+
+     Nothing here calls renderToday(): rebuilding the list mid-hold would
+     destroy the very button the finger is resting on. The row is patched in
+     place instead, and the full render happens once, on release. */
+  const HOLD_DELAY = 420;      // before the first repeat
+  const HOLD_START = 260;      // first repeat interval
+  const HOLD_FLOOR = 55;       // fastest it will ever go
+  const HOLD_ACCEL = 0.82;     // each repeat is a little quicker
+  const HOLD_SOUND_GAP = 140;  // one drop per this many ms, not per unit
+
+  let hold = null;
+
+  function patchQuantityRow(habit) {
+    const row = $$('#habitList .habit-row').find((n) => n.dataset.habitId === habit.id);
+    if (!row) return;
+    const value = valueOf(habit, selectedDate);
+    const readout = $('.qty-value strong', row);
+    if (readout) readout.textContent = value;
+    const fill = $('.progress-fill', row);
+    if (fill) fill.style.width = Math.min(100, (value / targetOf(habit)) * 100) + '%';
+    const minus = $('.qty-btn', row);
+    if (minus) minus.disabled = value <= 0;
+    row.classList.toggle('is-done', isComplete(habit, selectedDate));
+
+    // Keep the ring honest while the counter runs; streaks can wait for release.
+    const stats = dayStats(selectedDate);
+    const circumference = 2 * Math.PI * 52;
+    const ring = $('#ringValue');
+    if (ring) ring.setAttribute('stroke-dashoffset', (circumference * (1 - stats.pct / 100)).toFixed(1));
+    const pct = $('#summaryPct');
+    if (pct) pct.textContent = stats.pct + '%';
+    const count = $('#summaryCount');
+    if (count) count.textContent = stats.done + '/' + stats.due;
+  }
+
+  function holdStep(habit, delta) {
+    const before = valueOf(habit, selectedDate);
+    const wasComplete = isComplete(habit, selectedDate);
+    setValue(habit, selectedDate, before + delta);
+    const after = valueOf(habit, selectedDate);
+    if (after === before) return false;          // hit a limit; stop repeating
+
+    const now = Date.now();
+    if (now - hold.lastSound >= HOLD_SOUND_GAP) {
+      hold.lastSound = now;
+      Sounds.play(delta > 0 ? soundForIncrement(habit) : 'undo');
+    }
+    // The moment it crosses the target is worth marking, once.
+    if (!wasComplete && isComplete(habit, selectedDate)) {
+      Sounds.play('complete');
+      buzz(15);
+    }
+    patchQuantityRow(habit);
+    return true;
+  }
+
+  function stopHold() {
+    if (!hold) return;
+    clearTimeout(hold.timer);
+    const { habit, wasComplete, repeats } = hold;
+    hold = null;
+    if (repeats > 0) {
+      // Re-render once so streaks, ordering and the day strip catch up.
+      renderToday();
+      celebrate(habit, wasComplete);
+      renderProgressIfVisible();
+    }
+  }
+
+  function startHold(habit, delta, btn, evt) {
+    stopHold();
+    hold = {
+      habit: habit,
+      delta: delta,
+      wasComplete: isComplete(habit, selectedDate),
+      repeats: 0,
+      interval: HOLD_START,
+      lastSound: 0,
+      timer: null,
+    };
+
+    try {
+      btn.setPointerCapture(evt.pointerId);       // a small slip must not cancel it
+    } catch (err) { /* mouse without capture support */ }
+
+    holdStep(habit, delta);                        // the tap itself
+
+    const repeat = () => {
+      if (!hold) return;
+      if (!holdStep(habit, delta)) { stopHold(); return; }
+      hold.repeats++;
+      hold.interval = Math.max(HOLD_FLOOR, hold.interval * HOLD_ACCEL);
+      hold.timer = setTimeout(repeat, hold.interval);
+    };
+    hold.timer = setTimeout(repeat, HOLD_DELAY);
+  }
+
   function bump(habit, delta) {
     const wasComplete = isComplete(habit, selectedDate);
     const before = valueOf(habit, selectedDate);
@@ -507,6 +644,28 @@
     renderProgressIfVisible();
   }
 
+  /**
+   * Wires one +/− button for both a tap and a hold.
+   *
+   * Pointer events drive the hold, so the click listener would double-count —
+   * except for keyboard activation, which produces a click with no pointer
+   * behind it. detail === 0 is how that case is told apart.
+   */
+  function bindHold(btn, habit, delta) {
+    btn.addEventListener('pointerdown', (evt) => {
+      if (evt.button > 0) return;
+      evt.preventDefault();                  // no text selection, no scroll
+      startHold(habit, delta, btn, evt);
+    });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach((type) => {
+      btn.addEventListener(type, stopHold);
+    });
+    btn.addEventListener('click', (evt) => {
+      if (evt.detail !== 0) return;          // already handled by the pointer
+      bump(habit, delta);
+    });
+  }
+
   function controlFor(habit, complete) {
     if (habit.type === 'quantity') {
       const wrap = document.createElement('div');
@@ -516,7 +675,7 @@
 
       const minus = button('qty-btn', '−', { 'aria-label': '-1' });
       minus.disabled = value <= 0;
-      minus.addEventListener('click', () => bump(habit, -stepSize));
+      bindHold(minus, habit, -stepSize);
 
       const readout = document.createElement('span');
       readout.className = 'qty-value';
@@ -524,7 +683,7 @@
         (habit.unit ? ' ' + escapeHtml(habit.unit) : '');
 
       const plus = button('qty-btn', '+', { 'aria-label': '+1' });
-      plus.addEventListener('click', () => bump(habit, stepSize));
+      bindHold(plus, habit, stepSize);
 
       wrap.append(minus, readout, plus);
       return wrap;
@@ -567,8 +726,16 @@
       badge.setAttribute('aria-hidden', 'true');
       badge.textContent = habit.emoji || '✅';
 
-      const main = document.createElement('div');
-      main.className = 'habit-main';
+      /* With a description the body of the row becomes a button that expands
+         it. A real button, not a click handler on the <li>, so it is reachable
+         by keyboard and announced as expandable. The tick and the +/- controls
+         are siblings, so tapping them never opens the description. */
+      const hasDescription = !!(habit.description && habit.description.trim());
+      const expanded = hasDescription && expandedDesc.has(habit.id);
+      const main = hasDescription
+        ? button('habit-main', null, { 'aria-expanded': String(expanded) })
+        : document.createElement('div');
+      if (!hasDescription) main.className = 'habit-main';
       const name = document.createElement('span');
       name.className = 'habit-name';
       name.textContent = habit.name;
@@ -600,6 +767,22 @@
       }
 
       li.append(badge, main, controlFor(habit, complete));
+
+      if (hasDescription) {
+        const note = document.createElement('p');
+        note.className = 'habit-desc';
+        note.textContent = habit.description;
+        note.hidden = !expanded;
+        li.appendChild(note);
+        li.classList.toggle('is-expanded', expanded);
+        main.addEventListener('click', () => {
+          if (expandedDesc.has(habit.id)) expandedDesc.delete(habit.id);
+          else expandedDesc.add(habit.id);
+          Sounds.play('tick');
+          renderHabitList();
+        });
+      }
+
       list.appendChild(li);
     });
   }
@@ -613,14 +796,14 @@
 
   /* ── Habits view ───────────────────────────────────────────────────── */
   const PRESETS = [
-    { key: 'presetMeditate', emoji: '🧘', colorIndex: 7, category: 'mental', type: 'quantity', target: 10, unitKey: 'unitMin', schedule: { kind: 'daily' } },
-    { key: 'presetGratitude', emoji: '🙏', colorIndex: 5, category: 'mental', type: 'binary', schedule: { kind: 'daily' } },
-    { key: 'presetWalk', emoji: '🚶', colorIndex: 3, category: 'fitness', type: 'binary', schedule: { kind: 'daily' } },
-    { key: 'presetGym', emoji: '💪', colorIndex: 2, category: 'fitness', type: 'binary', schedule: { kind: 'times', times: 3 } },
-    { key: 'presetWater', emoji: '💧', colorIndex: 1, category: 'health', type: 'quantity', target: 8, unitKey: 'unitGlasses', schedule: { kind: 'daily' } },
-    { key: 'presetSleep', emoji: '😴', colorIndex: 4, category: 'health', type: 'binary', schedule: { kind: 'daily' } },
-    { key: 'presetRead', emoji: '📖', colorIndex: 6, category: 'focus', type: 'quantity', target: 20, unitKey: 'unitPages', schedule: { kind: 'daily' } },
-    { key: 'presetNoPhone', emoji: '📵', colorIndex: 8, category: 'mental', type: 'binary', schedule: { kind: 'daily' } },
+    { key: 'presetMeditate', desc: 'dsMeditate', emoji: '🧘', colorIndex: 7, category: 'mental', type: 'quantity', target: 10, unitKey: 'unitMin', schedule: { kind: 'daily' } },
+    { key: 'presetGratitude', desc: 'dsGratitude', emoji: '🙏', colorIndex: 5, category: 'mental', type: 'binary', schedule: { kind: 'daily' } },
+    { key: 'presetWalk', desc: 'dsWalk', emoji: '🚶', colorIndex: 3, category: 'fitness', type: 'binary', schedule: { kind: 'daily' } },
+    { key: 'presetGym', desc: 'dsStrength', emoji: '💪', colorIndex: 2, category: 'fitness', type: 'binary', schedule: { kind: 'times', times: 3 } },
+    { key: 'presetWater', desc: 'dsWater', emoji: '💧', colorIndex: 1, category: 'health', type: 'quantity', target: 8, unitKey: 'unitGlasses', schedule: { kind: 'daily' } },
+    { key: 'presetSleep', desc: 'dsSleepEarly', emoji: '😴', colorIndex: 4, category: 'health', type: 'binary', schedule: { kind: 'daily' } },
+    { key: 'presetRead', desc: 'dsRead', emoji: '📖', colorIndex: 6, category: 'focus', type: 'quantity', target: 20, unitKey: 'unitPages', schedule: { kind: 'daily' } },
+    { key: 'presetNoPhone', desc: 'dsNoPhoneBed', emoji: '📵', colorIndex: 8, category: 'mental', type: 'binary', schedule: { kind: 'daily' } },
   ];
 
   function renderPresets() {
@@ -643,7 +826,8 @@
               id: uid(), reminder: '', schedule: { kind: 'daily' },
               createdAt: todayKey(), archived: false,
             }, {
-              name: habit.name, emoji: habit.emoji, colorIndex: habit.colorIndex,
+              name: habit.name, description: habit.description || '',
+              emoji: habit.emoji, colorIndex: habit.colorIndex,
               category: habit.category, type: habit.type,
               target: habit.target, unit: habit.unit,
             }));
@@ -667,6 +851,7 @@
         state.habits.push({
           id: uid(),
           name: t(preset.key),
+          description: preset.desc ? t(preset.desc) : '',
           emoji: preset.emoji,
           colorIndex: preset.colorIndex,
           category: preset.category,
@@ -868,6 +1053,7 @@
       emoji: '🧘',
       colorIndex: 1,
       category: 'mental',
+      description: '',
       type: 'binary',
       target: 1,
       unit: '',
@@ -961,6 +1147,7 @@
       ? {
           id: existing.id,
           name: existing.name,
+          description: existing.description || '',
           emoji: existing.emoji || '🧘',
           colorIndex: existing.colorIndex || 1,
           category: existing.category || 'other',
@@ -975,6 +1162,7 @@
 
     $('#habitDialogTitle').textContent = existing ? t('editHabit') : t('addHabit');
     $('#fName').value = draft.name;
+    $('#fDescription').value = draft.description || '';
     $('#fTarget').value = draft.target;
     $('#fUnit').value = draft.unit;
     $('#fTimes').value = draft.schedule.times || 3;
@@ -996,6 +1184,7 @@
 
   function readDialog() {
     draft.name = $('#fName').value.trim();
+    draft.description = $('#fDescription').value.trim();
     draft.target = parseInt($('#fTarget').value, 10) || 0;
     draft.unit = $('#fUnit').value.trim();
     draft.category = $('#fCategory').value;
@@ -1017,6 +1206,7 @@
 
     const payload = {
       name: draft.name,
+      description: draft.description || '',
       emoji: draft.emoji,
       colorIndex: draft.colorIndex,
       category: draft.category,
@@ -1690,29 +1880,29 @@
      "cost" is rough minutes per day, used to keep suggestions inside the
      time someone actually said they have. */
   const HABIT_CATALOGUE = [
-    { id: 'meditate', key: 'hbMeditate', emoji: '🧘', color: 7, area: 'mental', cat: 'mental', type: 'quantity', target: 10, unit: 'unitMin', cost: 10, moment: 'morning' },
-    { id: 'gratitude', key: 'hbGratitude', emoji: '🙏', color: 5, area: 'mental', cat: 'mental', type: 'binary', cost: 3, moment: 'evening' },
-    { id: 'journal', key: 'hbJournal', emoji: '📓', color: 7, area: 'mental', cat: 'mental', type: 'quantity', target: 5, unit: 'unitMin', cost: 5, moment: 'evening' },
-    { id: 'selfcare', key: 'hbSelfcare', emoji: '❤️', color: 5, area: 'mental', cat: 'mental', type: 'binary', cost: 10 },
-    { id: 'walk', key: 'hbWalk', emoji: '🚶', color: 3, area: 'fitness', cat: 'fitness', type: 'quantity', target: 20, unit: 'unitMin', cost: 20 },
-    { id: 'run', key: 'hbRun', emoji: '🏃', color: 3, area: 'fitness', cat: 'fitness', type: 'quantity', target: 3, unit: 'unitKm', cost: 25, moment: 'morning' },
-    { id: 'strength', key: 'hbStrength', emoji: '💪', color: 2, area: 'fitness', cat: 'fitness', type: 'binary', cost: 30 },
-    { id: 'bike', key: 'hbBike', emoji: '🚴', color: 3, area: 'fitness', cat: 'fitness', type: 'quantity', target: 20, unit: 'unitMin', cost: 20 },
-    { id: 'stretch', key: 'hbStretch', emoji: '🧎', color: 4, area: 'fitness', cat: 'fitness', type: 'quantity', target: 5, unit: 'unitMin', cost: 5, moment: 'morning' },
-    { id: 'water', key: 'hbWater', emoji: '💧', color: 1, area: 'health', cat: 'health', type: 'quantity', target: 8, unit: 'unitGlasses', cost: 1 },
-    { id: 'fruit', key: 'hbFruit', emoji: '🍎', color: 8, area: 'health', cat: 'health', type: 'quantity', target: 2, unit: 'unitServings', cost: 2 },
-    { id: 'veggies', key: 'hbVeggies', emoji: '🥗', color: 6, area: 'health', cat: 'health', type: 'binary', cost: 5 },
-    { id: 'vitamins', key: 'hbVitamins', emoji: '💊', color: 4, area: 'health', cat: 'health', type: 'binary', cost: 1 },
-    { id: 'skincare', key: 'hbSkincare', emoji: '🧴', color: 5, area: 'health', cat: 'health', type: 'binary', cost: 3, moment: 'evening' },
-    { id: 'sunlight', key: 'hbSunlight', emoji: '☀️', color: 4, area: 'health', cat: 'health', type: 'binary', cost: 10, moment: 'morning' },
-    { id: 'sleepEarly', key: 'hbSleepEarly', emoji: '😴', color: 7, area: 'sleep', cat: 'health', type: 'binary', cost: 0, moment: 'evening' },
-    { id: 'noPhoneBed', key: 'hbNoPhoneBed', emoji: '📵', color: 8, area: 'sleep', cat: 'mental', type: 'binary', cost: 0, moment: 'evening' },
-    { id: 'nightRoutine', key: 'hbNightRoutine', emoji: '🌙', color: 7, area: 'sleep', cat: 'health', type: 'binary', cost: 10, moment: 'evening' },
-    { id: 'read', key: 'hbRead', emoji: '📖', color: 6, area: 'focus', cat: 'focus', type: 'quantity', target: 20, unit: 'unitPages', cost: 20, moment: 'evening' },
-    { id: 'study', key: 'hbStudy', emoji: '💻', color: 1, area: 'focus', cat: 'focus', type: 'quantity', target: 25, unit: 'unitMin', cost: 25 },
-    { id: 'planDay', key: 'hbPlanDay', emoji: '🎯', color: 1, area: 'focus', cat: 'focus', type: 'binary', cost: 5, moment: 'morning' },
-    { id: 'tidy', key: 'hbTidy', emoji: '🧹', color: 4, area: 'focus', cat: 'focus', type: 'quantity', target: 10, unit: 'unitMin', cost: 10 },
-    { id: 'callSomeone', key: 'hbCallSomeone', emoji: '🗣️', color: 5, area: 'social', cat: 'social', type: 'binary', cost: 10 },
+    { id: 'meditate', key: 'hbMeditate', desc: 'dsMeditate', emoji: '🧘', color: 7, area: 'mental', cat: 'mental', type: 'quantity', target: 10, unit: 'unitMin', cost: 10, moment: 'morning' },
+    { id: 'gratitude', key: 'hbGratitude', desc: 'dsGratitude', emoji: '🙏', color: 5, area: 'mental', cat: 'mental', type: 'binary', cost: 3, moment: 'evening' },
+    { id: 'journal', key: 'hbJournal', desc: 'dsJournal', emoji: '📓', color: 7, area: 'mental', cat: 'mental', type: 'quantity', target: 5, unit: 'unitMin', cost: 5, moment: 'evening' },
+    { id: 'selfcare', key: 'hbSelfcare', desc: 'dsSelfcare', emoji: '❤️', color: 5, area: 'mental', cat: 'mental', type: 'binary', cost: 10 },
+    { id: 'walk', key: 'hbWalk', desc: 'dsWalk', emoji: '🚶', color: 3, area: 'fitness', cat: 'fitness', type: 'quantity', target: 20, unit: 'unitMin', cost: 20 },
+    { id: 'run', key: 'hbRun', desc: 'dsRun', emoji: '🏃', color: 3, area: 'fitness', cat: 'fitness', type: 'quantity', target: 3, unit: 'unitKm', cost: 25, moment: 'morning' },
+    { id: 'strength', key: 'hbStrength', desc: 'dsStrength', emoji: '💪', color: 2, area: 'fitness', cat: 'fitness', type: 'binary', cost: 30 },
+    { id: 'bike', key: 'hbBike', desc: 'dsBike', emoji: '🚴', color: 3, area: 'fitness', cat: 'fitness', type: 'quantity', target: 20, unit: 'unitMin', cost: 20 },
+    { id: 'stretch', key: 'hbStretch', desc: 'dsStretch', emoji: '🧎', color: 4, area: 'fitness', cat: 'fitness', type: 'quantity', target: 5, unit: 'unitMin', cost: 5, moment: 'morning' },
+    { id: 'water', key: 'hbWater', desc: 'dsWater', emoji: '💧', color: 1, area: 'health', cat: 'health', type: 'quantity', target: 8, unit: 'unitGlasses', cost: 1 },
+    { id: 'fruit', key: 'hbFruit', desc: 'dsFruit', emoji: '🍎', color: 8, area: 'health', cat: 'health', type: 'quantity', target: 2, unit: 'unitServings', cost: 2 },
+    { id: 'veggies', key: 'hbVeggies', desc: 'dsVeggies', emoji: '🥗', color: 6, area: 'health', cat: 'health', type: 'binary', cost: 5 },
+    { id: 'vitamins', key: 'hbVitamins', desc: 'dsVitamins', emoji: '💊', color: 4, area: 'health', cat: 'health', type: 'binary', cost: 1 },
+    { id: 'skincare', key: 'hbSkincare', desc: 'dsSkincare', emoji: '🧴', color: 5, area: 'health', cat: 'health', type: 'binary', cost: 3, moment: 'evening' },
+    { id: 'sunlight', key: 'hbSunlight', desc: 'dsSunlight', emoji: '☀️', color: 4, area: 'health', cat: 'health', type: 'binary', cost: 10, moment: 'morning' },
+    { id: 'sleepEarly', key: 'hbSleepEarly', desc: 'dsSleepEarly', emoji: '😴', color: 7, area: 'sleep', cat: 'health', type: 'binary', cost: 0, moment: 'evening' },
+    { id: 'noPhoneBed', key: 'hbNoPhoneBed', desc: 'dsNoPhoneBed', emoji: '📵', color: 8, area: 'sleep', cat: 'mental', type: 'binary', cost: 0, moment: 'evening' },
+    { id: 'nightRoutine', key: 'hbNightRoutine', desc: 'dsNightRoutine', emoji: '🌙', color: 7, area: 'sleep', cat: 'health', type: 'binary', cost: 10, moment: 'evening' },
+    { id: 'read', key: 'hbRead', desc: 'dsRead', emoji: '📖', color: 6, area: 'focus', cat: 'focus', type: 'quantity', target: 20, unit: 'unitPages', cost: 20, moment: 'evening' },
+    { id: 'study', key: 'hbStudy', desc: 'dsStudy', emoji: '💻', color: 1, area: 'focus', cat: 'focus', type: 'quantity', target: 25, unit: 'unitMin', cost: 25 },
+    { id: 'planDay', key: 'hbPlanDay', desc: 'dsPlanDay', emoji: '🎯', color: 1, area: 'focus', cat: 'focus', type: 'binary', cost: 5, moment: 'morning' },
+    { id: 'tidy', key: 'hbTidy', desc: 'dsTidy', emoji: '🧹', color: 4, area: 'focus', cat: 'focus', type: 'quantity', target: 10, unit: 'unitMin', cost: 10 },
+    { id: 'callSomeone', key: 'hbCallSomeone', desc: 'dsCallSomeone', emoji: '🗣️', color: 5, area: 'social', cat: 'social', type: 'binary', cost: 10 },
   ];
 
   const OB_AREAS = ['mental', 'fitness', 'health', 'sleep', 'focus', 'social'];
@@ -1763,6 +1953,7 @@
       return {
         catalogueId: entry.id,
         name: t(entry.key),
+        description: entry.desc ? t(entry.desc) : '',
         emoji: entry.emoji,
         colorIndex: entry.color,
         category: entry.cat,
@@ -2092,6 +2283,7 @@
       state.habits.push({
         id: uid(),
         name: habit.name,
+        description: habit.description || '',
         emoji: habit.emoji,
         colorIndex: habit.colorIndex,
         category: habit.category,
@@ -2200,6 +2392,7 @@
   function init() {
     load();
     wire();
+    if (backfillDescriptions()) save();
     applyTheme();
     applySound();
     applyLayout();

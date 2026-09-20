@@ -16,8 +16,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="GlowApp">
-  <link rel="stylesheet" href="styles.css?v=2.4">
-  <script src="i18n.js?v=2.4"></script>
+  <link rel="stylesheet" href="styles.css?v=2.5">
+  <script src="i18n.js?v=2.5"></script>
 </head>
 <body>
   <!-- Launch screen. The mark draws itself, then a phrase lands under it.
@@ -355,6 +355,12 @@
           <input type="text" id="fName" required maxlength="60" data-i18n-placeholder="fieldNamePlaceholder">
         </label>
 
+        <label class="field">
+          <span class="field-label" data-i18n="fieldDescription">Descripción</span>
+          <textarea id="fDescription" rows="2" maxlength="160"
+                    data-i18n-placeholder="fieldDescriptionPlaceholder"></textarea>
+        </label>
+
         <div class="field">
           <span class="field-label" data-i18n="fieldIcon">Icono</span>
           <div class="emoji-grid" id="emojiGrid" role="radiogroup" aria-label="Icono"></div>
@@ -474,8 +480,8 @@
     </symbol>
   </svg>
 
-  <script src="sounds.js?v=2.4"></script>
-  <script src="charts.js?v=2.4"></script>
-  <script src="app.js?v=2.4"></script>
+  <script src="sounds.js?v=2.5"></script>
+  <script src="charts.js?v=2.5"></script>
+  <script src="app.js?v=2.5"></script>
 </body>
 </html>
