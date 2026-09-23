@@ -20,6 +20,7 @@ final class GlowStore {
   private static final String PREFS = "glow_shell";
   private static final String KEY_SNAPSHOT = "snapshot";
   private static final String KEY_PENDING = "pending";
+  private static final String KEY_TOKEN = "widget_token";
 
   private GlowStore() { }
 
@@ -150,6 +151,21 @@ final class GlowStore {
     final String queued = store.getString(KEY_PENDING, "[]");
     store.edit().remove(KEY_PENDING).apply();
     return queued;
+  }
+
+  /**
+   * A random value created once per install and handed only to the widget's own
+   * PendingIntent. Any toggle broadcast arriving without it did not come from
+   * this app's widget and is ignored.
+   */
+  static String token(Context context) {
+    final SharedPreferences store = prefs(context);
+    String token = store.getString(KEY_TOKEN, null);
+    if (token == null) {
+      token = java.util.UUID.randomUUID().toString();
+      store.edit().putString(KEY_TOKEN, token).apply();
+    }
+    return token;
   }
 
   static String todayDate(Context context) {

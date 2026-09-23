@@ -3,15 +3,15 @@
    activate. */
 /* Bump together with the ?v= query in index.html: the two must agree or the
    precache stores URLs the page never asks for. */
-const CACHE = 'glow-v7';
+const CACHE = 'glow-v8';
 
 const SHELL = [
   './index.html',
-  './styles.css?v=2.5',
-  './sounds.js?v=2.5',
-  './i18n.js?v=2.5',
-  './charts.js?v=2.5',
-  './app.js?v=2.5',
+  './styles.css?v=2.6',
+  './sounds.js?v=2.6',
+  './i18n.js?v=2.6',
+  './charts.js?v=2.6',
+  './app.js?v=2.6',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',

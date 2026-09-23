@@ -50,9 +50,12 @@
         android:name=".GlowWidgetProvider"
         android:label="@string/widget_label"
         android:exported="true">
+      <!-- Exported because the system delivers APPWIDGET_UPDATE here. The
+           toggle is deliberately NOT advertised: the widget's own PendingIntent
+           is explicit, so it still arrives, while another app can no longer
+           broadcast the action and tick someone's habits. -->
       <intent-filter>
         <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-        <action android:name="com.pablo.glowapp.WIDGET_TOGGLE" />
       </intent-filter>
       <meta-data
           android:name="android.appwidget.provider"

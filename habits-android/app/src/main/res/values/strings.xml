@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <string name="app_name">GlowApp</string>
+  <string name="app_name" translatable="false">GlowApp</string>
 
   <!-- Reminders -->
   <string name="reminder_channel">Reminders</string>

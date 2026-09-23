@@ -21,6 +21,7 @@ public class GlowWidgetProvider extends AppWidgetProvider {
 
   static final String ACTION_TOGGLE = "com.pablo.glowapp.WIDGET_TOGGLE";
   static final String EXTRA_HABIT_ID = "habitId";
+  static final String EXTRA_TOKEN = "token";
 
   @Override
   public void onUpdate(Context context, AppWidgetManager manager, int[] widgetIds) {
@@ -32,6 +33,9 @@ public class GlowWidgetProvider extends AppWidgetProvider {
   @Override
   public void onReceive(Context context, Intent intent) {
     if (ACTION_TOGGLE.equals(intent.getAction())) {
+      // The receiver has to stay exported for APPWIDGET_UPDATE, so authenticate
+      // the toggle rather than trusting whoever sent it.
+      if (!GlowStore.token(context).equals(intent.getStringExtra(EXTRA_TOKEN))) return;
       final String habitId = intent.getStringExtra(EXTRA_HABIT_ID);
       if (habitId != null) {
         final String action = GlowStore.applyTap(context, habitId);
@@ -78,7 +82,8 @@ public class GlowWidgetProvider extends AppWidgetProvider {
 
     // One template intent; each row supplies its own habit id as a fill-in.
     final Intent toggle = new Intent(context, GlowWidgetProvider.class)
-        .setAction(ACTION_TOGGLE);
+        .setAction(ACTION_TOGGLE)
+        .putExtra(EXTRA_TOKEN, GlowStore.token(context));
     views.setPendingIntentTemplate(R.id.widget_list, PendingIntent.getBroadcast(
         context, 0, toggle,
         PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE));

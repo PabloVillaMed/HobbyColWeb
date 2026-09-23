@@ -147,30 +147,35 @@
    * the user typed themselves is left alone — silence is better than a
    * description that describes the wrong thing.
    */
-  function backfillDescriptions() {
-    const needs = state.habits.filter((h) => !h.description);
+  function linkCatalogueKeys() {
+    const needs = state.habits.filter((h) => !h.nameKey || !h.descKey);
     if (!needs.length) return false;
 
+    /* Built from both languages, so a habit added as "Beber agua" is still
+       recognised after the interface was switched to English. */
     const byName = {};
     ['es', 'en'].forEach((lang) => {
       const table = I18N.STRINGS[lang];
-      HABIT_CATALOGUE.forEach((entry) => {
-        if (entry.desc && table[entry.key]) byName[table[entry.key].toLowerCase()] = entry.desc;
-      });
-      PRESETS.forEach((preset) => {
-        if (preset.desc && table[preset.key]) byName[table[preset.key].toLowerCase()] = preset.desc;
-      });
+      const remember = (nameKey, descKey) => {
+        const label = table[nameKey];
+        if (label) byName[label.trim().toLowerCase()] = { nameKey: nameKey, descKey: descKey || '' };
+      };
+      HABIT_CATALOGUE.forEach((entry) => remember(entry.key, entry.desc));
+      PRESETS.forEach((preset) => remember(preset.key, preset.desc));
     });
 
-    let filled = 0;
+    let linked = 0;
     needs.forEach((habit) => {
-      const key = byName[(habit.name || '').trim().toLowerCase()];
-      if (key) {
-        habit.description = t(key);
-        filled++;
+      const match = byName[(habit.name || '').trim().toLowerCase()];
+      if (!match) return;                       // typed by hand; leave it alone
+      if (!habit.nameKey) { habit.nameKey = match.nameKey; linked++; }
+      if (!habit.descKey && match.descKey) {
+        habit.descKey = match.descKey;
+        if (!habit.description) habit.description = t(match.descKey);
+        linked++;
       }
     });
-    return filled > 0;
+    return linked > 0;
   }
 
   let saveTimer = null;
@@ -181,7 +186,7 @@
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       } catch (err) {
         console.warn('Could not save', err);
-        toast('⚠️');
+        toast(t('saveFailed'));
       }
       syncToShell();
     }, 120);
@@ -193,6 +198,12 @@
 
   /* ── Habit model helpers ───────────────────────────────────────────── */
   const activeHabits = () => state.habits.filter((h) => !h.archived);
+
+  /* Habits built from the catalogue keep the key they came from, so switching
+     language retranslates them. A habit the user renamed loses the key and
+     keeps whatever they typed — their words are not ours to overwrite. */
+  const habitName = (h) => (h.nameKey ? t(h.nameKey) : h.name) || '';
+  const habitDesc = (h) => (h.descKey ? t(h.descKey) : h.description) || '';
   const habitById = (id) => state.habits.find((h) => h.id === id);
   const colorVar = (h) => 'var(--s' + (h.colorIndex || 1) + ')';
 
@@ -363,52 +374,69 @@
      older day should never hit a wall mid-gesture. */
   const DAY_STRIP_DAYS = 120;
 
-  function renderDayStrip() {
-    const strip = $('#dayStrip');
-    const previousScroll = strip.scrollLeft;
+  let dayStripSignature = '';
+
+  function dayChipDot(key) {
+    const stats = dayStats(key);
+    return stats.due > 0 && stats.done === stats.due;
+  }
+
+  function buildDayStrip(strip) {
     strip.innerHTML = '';
     lastNDays(DAY_STRIP_DAYS).forEach((key) => {
       const date = parseKey(key);
-      const chip = button('day-chip', null, {
-        role: 'tab',
-        'aria-selected': String(key === selectedDate),
-        'data-date': key,
-      });
+      const chip = button('day-chip', null, { role: 'tab', 'data-date': key });
       const dow = document.createElement('span');
       dow.textContent = date.toLocaleDateString(I18N.locale(), { weekday: 'narrow' });
       const num = document.createElement('span');
       num.className = 'dnum';
       num.textContent = date.getDate();
       const dot = document.createElement('span');
-      const stats = dayStats(key);
-      dot.className = 'ddot' + (stats.due > 0 && stats.done === stats.due ? ' filled' : '');
-      // A month label on the first of the month makes long scrolls legible.
-      const date2 = parseKey(key);
-      if (date2.getDate() === 1) {
+      dot.className = 'ddot';
+      chip.append(dow, num, dot);
+
+      if (date.getDate() === 1) {
         chip.classList.add('is-month-start');
         chip.title = fmtDate(key, { month: 'long', year: 'numeric' });
       }
-
-      chip.append(dow, num, dot);
       chip.addEventListener('click', () => {
         selectedDate = key;
         renderToday();
       });
       strip.appendChild(chip);
     });
+  }
 
-    /* Today sits at the end of the strip, so the first paint has to scroll
-       there. Later re-renders keep wherever the user had scrolled to, rather
-       than yanking the strip back under their finger. */
-    if (previousScroll > 0) {
-      strip.scrollLeft = previousScroll;
-    } else {
-      const selected = strip.querySelector('[data-date="' + selectedDate + '"]');
+  function refreshDayDot(key) {
+    const chip = $('#dayStrip .day-chip[data-date="' + key + '"]');
+    if (!chip) return;
+    const dot = $('.ddot', chip);
+    if (dot) dot.classList.toggle('filled', dayChipDot(key));
+  }
+
+  function renderDayStrip() {
+    const strip = $('#dayStrip');
+    /* Only the day set itself forces a rebuild: a new day, a different week
+       start, or a language change (the weekday letters are localised). */
+    const signature = [todayKey(), state.weekStart, I18N.getLang()].join('|');
+
+    if (signature !== dayStripSignature || !strip.children.length) {
+      buildDayStrip(strip);
+      dayStripSignature = signature;
+      lastNDays(DAY_STRIP_DAYS).forEach(refreshDayDot);
+      const selected = $('#dayStrip .day-chip[data-date="' + selectedDate + '"]');
       if (selected) {
         strip.scrollLeft = Math.max(
           0, selected.offsetLeft - (strip.clientWidth - selected.clientWidth) / 2);
       }
+    } else {
+      // A tap can only have changed the day being looked at.
+      refreshDayDot(selectedDate);
     }
+
+    $$('#dayStrip .day-chip').forEach((chip) => {
+      chip.setAttribute('aria-selected', String(chip.dataset.date === selectedDate));
+    });
   }
 
   function renderSummary() {
@@ -528,7 +556,7 @@
      Matching the sound to the habit is the whole charm of this. */
   const WATERY = /agua|water|hidrat|drink|bebe|vaso|glass/i;
   const soundForIncrement = (habit) =>
-    WATERY.test(habit.name + ' ' + (habit.unit || '')) || habit.emoji === '💧' ? 'drop' : 'tick';
+    WATERY.test(habitName(habit) + ' ' + (habit.unit || '')) || habit.emoji === '💧' ? 'drop' : 'tick';
 
   /* ── Press and hold on + / − ──────────────────────────────────────────
      A tap still moves one unit. Holding starts slow and speeds up, so ten
@@ -691,7 +719,7 @@
 
     const check = button('check-btn', null, {
       'aria-pressed': String(complete),
-      'aria-label': habit.name + ' — ' + t('doneToday'),
+      'aria-label': habitName(habit) + ' — ' + t('doneToday'),
     });
     check.addEventListener('click', () => {
       setValue(habit, selectedDate, complete ? 0 : 1);
@@ -730,7 +758,7 @@
          it. A real button, not a click handler on the <li>, so it is reachable
          by keyboard and announced as expandable. The tick and the +/- controls
          are siblings, so tapping them never opens the description. */
-      const hasDescription = !!(habit.description && habit.description.trim());
+      const hasDescription = !!habitDesc(habit).trim();
       const expanded = hasDescription && expandedDesc.has(habit.id);
       const main = hasDescription
         ? button('habit-main', null, { 'aria-expanded': String(expanded) })
@@ -738,7 +766,7 @@
       if (!hasDescription) main.className = 'habit-main';
       const name = document.createElement('span');
       name.className = 'habit-name';
-      name.textContent = habit.name;
+      name.textContent = habitName(habit);
 
       const meta = document.createElement('span');
       meta.className = 'habit-meta';
@@ -769,9 +797,15 @@
       li.append(badge, main, controlFor(habit, complete));
 
       if (hasDescription) {
+        const chevron = document.createElement('span');
+        chevron.className = 'habit-chevron';
+        chevron.setAttribute('aria-hidden', 'true');
+        chevron.innerHTML = iconSvg('i-chevron', 14);
+        name.appendChild(chevron);
+
         const note = document.createElement('p');
         note.className = 'habit-desc';
-        note.textContent = habit.description;
+        note.textContent = habitDesc(habit);
         note.hidden = !expanded;
         li.appendChild(note);
         li.classList.toggle('is-expanded', expanded);
@@ -820,13 +854,14 @@
         suggested.forEach((habit) => {
           const chip = button('preset-chip', null);
           chip.innerHTML = '<span aria-hidden="true">' + habit.emoji + '</span>';
-          chip.appendChild(document.createTextNode(habit.name));
+          chip.appendChild(document.createTextNode(habitName(habit)));
           chip.addEventListener('click', () => {
             state.habits.push(Object.assign({
               id: uid(), reminder: '', schedule: { kind: 'daily' },
               createdAt: todayKey(), archived: false,
             }, {
-              name: habit.name, description: habit.description || '',
+              name: habit.name, nameKey: habit.nameKey || '',
+              description: habit.description || '', descKey: habit.descKey || '',
               emoji: habit.emoji, colorIndex: habit.colorIndex,
               category: habit.category, type: habit.type,
               target: habit.target, unit: habit.unit,
@@ -851,7 +886,9 @@
         state.habits.push({
           id: uid(),
           name: t(preset.key),
+          nameKey: preset.key,
           description: preset.desc ? t(preset.desc) : '',
+          descKey: preset.desc || '',
           emoji: preset.emoji,
           colorIndex: preset.colorIndex,
           category: preset.category,
@@ -892,11 +929,11 @@
     badge.setAttribute('aria-hidden', 'true');
     badge.textContent = habit.emoji || '✅';
 
-    const open = button('habit-main', null, { 'aria-label': t('editHabit') + ': ' + habit.name });
+    const open = button('habit-main', null, { 'aria-label': t('editHabit') + ': ' + habitName(habit) });
     open.style.textAlign = 'left';
     const name = document.createElement('span');
     name.className = 'habit-name';
-    name.textContent = habit.name;
+    name.textContent = habitName(habit);
     const meta = document.createElement('span');
     meta.className = 'habit-meta';
     meta.textContent = scheduleLabel(habit) + ' · ' +
@@ -1146,8 +1183,10 @@
     draft = existing
       ? {
           id: existing.id,
-          name: existing.name,
-          description: existing.description || '',
+          name: habitName(existing),
+          nameKey: existing.nameKey || '',
+          description: habitDesc(existing),
+          descKey: existing.descKey || '',
           emoji: existing.emoji || '🧘',
           colorIndex: existing.colorIndex || 1,
           category: existing.category || 'other',
@@ -1206,7 +1245,12 @@
 
     const payload = {
       name: draft.name,
+      /* The key survives only while the text still matches its translation.
+         Rename it and the habit becomes yours: a language switch will never
+         overwrite your words again. */
+      nameKey: draft.nameKey && draft.name === t(draft.nameKey) ? draft.nameKey : '',
       description: draft.description || '',
+      descKey: draft.descKey && draft.description === t(draft.descKey) ? draft.descKey : '',
       emoji: draft.emoji,
       colorIndex: draft.colorIndex,
       category: draft.category,
@@ -1329,12 +1373,12 @@
       max: 100,
       ariaLabel: t('chartRatesTitle'),
       items: items.map((row) => ({
-        label: row.habit.emoji + ' ' + row.habit.name,
+        label: row.habit.emoji + ' ' + habitName(row.habit),
         value: row.rate.pct,
         valueLabel: row.rate.pct + '%',
         color: colorVar(row.habit),
         sub: row.rate.done + '/' + row.rate.due,
-        tip: '<b>' + escapeHtml(row.habit.name) + '</b><br>' + row.rate.done + ' ' + t('of') + ' ' + row.rate.due,
+        tip: '<b>' + escapeHtml(habitName(row.habit)) + '</b><br>' + row.rate.done + ' ' + t('of') + ' ' + row.rate.due,
       })),
     });
   }
@@ -1350,7 +1394,7 @@
     activeHabits().forEach((habit) => {
       const opt = document.createElement('option');
       opt.value = habit.id;
-      opt.textContent = habit.emoji + ' ' + habit.name;
+      opt.textContent = habit.emoji + ' ' + habitName(habit);
       select.appendChild(opt);
     });
     heatHabitId = habitById(previous) && !habitById(previous).archived ? previous : 'all';
@@ -1413,7 +1457,7 @@
       });
       if (doneN < 2 || missN < 2) return;
       groups.push({
-        label: habit.emoji + ' ' + habit.name,
+        label: habit.emoji + ' ' + habitName(habit),
         values: [
           { value: doneSum / doneN, valueLabel: (doneSum / doneN).toFixed(1), tip: '<b>' + t('legendDone') + '</b><br>' + doneN + ' ' + (I18N.getLang() === 'es' ? 'días' : 'days') },
           { value: missSum / missN, valueLabel: (missSum / missN).toFixed(1), tip: '<b>' + t('legendMissed') + '</b><br>' + missN + ' ' + (I18N.getLang() === 'es' ? 'días' : 'days') },
@@ -1479,6 +1523,11 @@
   /* ── Theme & language ──────────────────────────────────────────────── */
   const systemDark = window.matchMedia('(prefers-color-scheme: dark)');
 
+  function applyBackupNote() {
+    const note = $('#backupNote');
+    if (note) note.hidden = !shell;     // only the Android build backs up
+  }
+
   function applySound() {
     Sounds.setEnabled(state.sound !== false);
     const box = $('#soundToggle');
@@ -1523,6 +1572,20 @@
     updateViewTitle();
     updateStorageInfo();
     renderAll();
+  }
+
+  /**
+   * Takes the app behind an overlay out of play.
+   *
+   * aria-modal tells a screen reader to ignore the background but does not
+   * stop Tab from walking into it, so the splash and the starting test had
+   * roughly two hundred reachable controls behind them. inert does both.
+   */
+  function setBackgroundInert(on) {
+    ['#main', '.app-bar', '.tab-bar'].forEach((sel) => {
+      const node = $(sel);
+      if (node) node.inert = !!on;
+    });
   }
 
   /* ── Layout and size ───────────────────────────────────────────────── */
@@ -1572,7 +1635,7 @@
         lang: state.lang,
         habits: due.map((h) => ({
           id: h.id,
-          name: h.name,
+          name: habitName(h),
           emoji: h.emoji || '✅',
           colorIndex: h.colorIndex || 1,
           type: h.type,
@@ -1583,7 +1646,7 @@
         })),
         reminders: activeHabits()
           .filter((h) => h.reminder)
-          .map((h) => ({ id: h.id, name: h.name, time: h.reminder })),
+          .map((h) => ({ id: h.id, name: habitName(h), time: h.reminder })),
       }));
     } catch (err) {
       console.warn('Could not sync to shell', err);
@@ -1953,7 +2016,9 @@
       return {
         catalogueId: entry.id,
         name: t(entry.key),
+        nameKey: entry.key,
         description: entry.desc ? t(entry.desc) : '',
+        descKey: entry.desc || '',
         emoji: entry.emoji,
         colorIndex: entry.color,
         category: entry.cat,
@@ -2056,6 +2121,12 @@
     }
     const list = document.createElement('div');
     list.className = 'ob-options';
+    // Single-choice steps are a radio group; multi-choice ones are plain
+    // toggles, and grouping those as radios would misreport them.
+    if (options.length && !options[0].multi) {
+      list.setAttribute('role', 'radiogroup');
+      list.setAttribute('aria-label', question);
+    }
     options.forEach((opt) => list.appendChild(obOption(opt)));
     body.appendChild(list);
   }
@@ -2283,7 +2354,9 @@
       state.habits.push({
         id: uid(),
         name: habit.name,
+        nameKey: habit.nameKey || '',
         description: habit.description || '',
+        descKey: habit.descKey || '',
         emoji: habit.emoji,
         colorIndex: habit.colorIndex,
         category: habit.category,
@@ -2304,6 +2377,7 @@
 
     $('#onboarding').hidden = true;
     document.documentElement.classList.remove('is-splashing');
+    setBackgroundInert(false);
     obAnswers = null;
     obResult = null;
     obChosen = null;
@@ -2326,6 +2400,7 @@
     $('#onboarding').hidden = false;
     // Reuses the splash lock so the app cannot be scrolled behind the test.
     document.documentElement.classList.add('is-splashing');
+    setBackgroundInert(true);
     obProgress();
     obRender();
   }
@@ -2361,9 +2436,11 @@
 
   function runSplash() {
     const splash = $('#splash');
+    setBackgroundInert(true);          // the splash covers the app too
     if (!splash) {
       document.documentElement.classList.remove('is-splashing');
       if (needsOnboarding()) startOnboarding();
+      else setBackgroundInert(false);
       return;
     }
 
@@ -2377,7 +2454,10 @@
       dismissed = true;
       // The test picks the lock straight back up if it is going to run.
       if (needsOnboarding()) startOnboarding();
-      else document.documentElement.classList.remove('is-splashing');
+      else {
+        document.documentElement.classList.remove('is-splashing');
+        setBackgroundInert(false);
+      }
       splash.classList.add('is-leaving');
       splash.addEventListener('transitionend', () => splash.remove(), { once: true });
       // Belt and braces: a missed transitionend must not leave it on screen.
@@ -2392,9 +2472,10 @@
   function init() {
     load();
     wire();
-    if (backfillDescriptions()) save();
+    if (linkCatalogueKeys()) save();
     applyTheme();
     applySound();
+    applyBackupNote();
     applyLayout();
     applyPendingFromShell();   // ticks made from the widget while the app was closed
     applyLang();
