@@ -89,7 +89,9 @@
   /* ── State ─────────────────────────────────────────────────────────── */
   const defaultState = () => ({
     version: SCHEMA_VERSION,
-    lang: (navigator.language || 'es').toLowerCase().startsWith('es') ? 'es' : 'en',
+    /* Spanish on a first run regardless of the device language: this is a
+     Spanish-first app, and the toggle in the bar switches it in one tap. */
+    lang: 'es',
     theme: 'system',
     weekStart: 1,
     layout: 'comfortable',

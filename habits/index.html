@@ -16,8 +16,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="GlowApp">
-  <link rel="stylesheet" href="styles.css?v=2.6">
-  <script src="i18n.js?v=2.6"></script>
+  <link rel="stylesheet" href="styles.css?v=2.7">
+  <script src="i18n.js?v=2.7"></script>
 </head>
 <body>
   <!-- Launch screen. The mark draws itself, then a phrase lands under it.
@@ -48,8 +48,8 @@
       try {
         document.documentElement.classList.add('is-splashing');
         var saved = JSON.parse(localStorage.getItem('glow.v1') || '{}');
-        var lang = saved.lang
-          || ((navigator.language || 'es').toLowerCase().indexOf('es') === 0 ? 'es' : 'en');
+        // Matches defaultState() in app.js: Spanish until told otherwise.
+        var lang = saved.lang || 'es';
         I18N.setLang(lang);
         var list = I18N.t('phrases') || [];
         if (!list.length) return;
@@ -487,8 +487,8 @@
     </symbol>
   </svg>
 
-  <script src="sounds.js?v=2.6"></script>
-  <script src="charts.js?v=2.6"></script>
-  <script src="app.js?v=2.6"></script>
+  <script src="sounds.js?v=2.7"></script>
+  <script src="charts.js?v=2.7"></script>
+  <script src="app.js?v=2.7"></script>
 </body>
 </html>
